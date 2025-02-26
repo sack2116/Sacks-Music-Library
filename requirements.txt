@@ -15,6 +15,7 @@ decorator==5.1.1
 executing==2.0.1
 Flask==3.0.3
 fonttools==4.53.1
+gunicorn==23.0.0
 idna==3.10
 importlib_metadata==8.6.1
 ipympl==0.9.4
