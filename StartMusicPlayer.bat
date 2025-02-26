@@ -14,7 +14,7 @@ pip install --upgrade pip
 pip install pandas mutagen dash
 
 echo Starting Music Player...
-start /min cmd /c python Music_PlayerLibary.py
+start /min cmd /c python App.py
 timeout /t 5 >nul
 
 echo Opening Music Player UI...
