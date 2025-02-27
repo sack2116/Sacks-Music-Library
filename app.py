@@ -73,7 +73,7 @@ def get_artwork_thumbnail(file_path):
     return "/assets/default_artwork.jpg"
 
 # Load songs from directory
-music_dir = r"C:\Users\hdomi\Desktop\AI Voice Clips\Mis Canciones Oficiales\Songs Database project\Music\OwnSongs\Sacks-Music-Library\"
+music_dir = r"C:\Users\hdomi\Desktop\AI Voice Clips\Mis Canciones Oficiales\Songs Database project\Music\OwnSongs\Sacks-Music-Library"
 df = load_songs(music_dir)
 
 # Initialize Dash app
