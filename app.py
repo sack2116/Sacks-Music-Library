@@ -247,8 +247,8 @@ def update_now_playing(prev_clicks, next_clicks, *song_clicks):
             selected_song["lyrics"])
 
 if __name__ == '__main__':
-    app.run_server(debug=True) 
-'''
+    app.run_server(debug=True) '''
+
 import os
 import base64
 import pandas as pd
