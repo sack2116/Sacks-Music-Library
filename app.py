@@ -50,8 +50,11 @@ def extract_metadata(file_path):
 import glob
 
 def load_lyrics(file_path):
-    lyrics_dir = os.path.dirname(file_path)  
-    txt_files = glob.glob(os.path.join(lyrics_dir, "*.txt"))  
+    #lyrics_dir = os.path.dirname(file_path)  
+    #txt_files = glob.glob(os.path.join(lyrics_dir, "*.txt"))
+    lyrics_dir = os.path.join(os.path.dirname(__file__), "Lyrics")
+    txt_files = glob.glob(os.path.join(lyrics_dir, "*.txt"))
+
     if txt_files:  
         with open(txt_files[0], "r", encoding="utf-8") as f:  
             return f.read()
@@ -70,10 +73,14 @@ def get_artwork_thumbnail(file_path):
     for tag in audio.tags.values():
         if isinstance(tag, APIC):  
             return f"data:image/jpeg;base64,{base64.b64encode(tag.data).decode()}"
-    return "/assets/default_artwork.jpg"
+    # return "/assets/default_artwork.jpg"
+    return os.path.join("assets", "default_artwork.jpg")
+
 
 # Load songs from directory
-music_dir = r"C:\Users\hdomi\Desktop\AI Voice Clips\Mis Canciones Oficiales\Songs Database project\Music\OwnSongs\Sacks-Music-Library"
+# music_dir = r"C:\Users\hdomi\Desktop\AI Voice Clips\Mis Canciones Oficiales\Songs Database project\Music\OwnSongs\Sacks-Music-Library"
+music_dir = os.path.join(os.path.dirname(__file__), "Music", "OwnSongs", "Sacks-Music-Library")
+
 df = load_songs(music_dir)
 
 # Initialize Dash app
@@ -82,7 +89,9 @@ server = app.server
 
 @app.server.route("/music/<path:song_path>")
 def serve_music(song_path):
-    full_path = os.path.join(music_dir, song_path)
+    #full_path = os.path.join(music_dir, song_path)
+    full_path = os.path.abspath(os.path.join(music_dir, song_path))
+
     if os.path.exists(full_path):
         return send_file(full_path, mimetype="audio/mpeg")
     return "File Not Found", 404
