@@ -168,6 +168,7 @@ def update_now_playing(prev_clicks, next_clicks, *song_clicks):
     if not ctx.triggered:
         return "Select a Song", "/assets/default_artwork.jpg", "", "", "No Lyrics Available"
 
+    # Identify which button was clicked
     triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
     if "song-btn" in triggered_id:
@@ -178,16 +179,19 @@ def update_now_playing(prev_clicks, next_clicks, *song_clicks):
     elif triggered_id == "next-btn":
         current_song_index = (current_song_index + 1) % len(df)
 
+    # Ensure valid song selection
+    if current_song_index < 0 or current_song_index >= len(df):
+        return "Select a Song", "/assets/default_artwork.jpg", "", "", "No Lyrics Available"
+
     selected_song = df.iloc[current_song_index]
 
-    # Ensure MP3 file path is correctly set relative to MusicAlbums/
+    # Construct file paths
     mp3_file = f"/MusicAlbums/{os.path.relpath(selected_song['file_path'], music_dir)}"
-
-    # Handle missing lyrics safely
+    artwork = f"/assets/{selected_song['artwork']}" if selected_song["artwork"] else "/assets/default_artwork.jpg"
     lyrics = selected_song["lyrics"] if selected_song["lyrics"] else "Lyrics not available"
 
     return (selected_song["title"], 
-            f"/assets/{selected_song['artwork']}",  # Artwork path corrected to root assets folder
+            artwork, 
             f"Album: {selected_song['album']} | Artist: {selected_song['artist']} | Genre: {selected_song['genre']} | Year: {selected_song['year']}",
             mp3_file, 
             lyrics)
