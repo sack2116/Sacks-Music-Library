@@ -157,11 +157,11 @@ current_song_index = 0
      Output("now-playing-details", "children"),
      Output("audio-player", "src"),
      Output("lyrics", "children")],
-    [Input("prev-btn", "n_clicks"),
-     Input("next-btn", "n_clicks")] + [Input(f"song-btn-{i}", "n_clicks") for i in range(len(df))],
+    [Input(f"song-btn-{i}", "n_clicks") for i in range(len(df))] +
+    [Input("prev-btn", "n_clicks"), Input("next-btn", "n_clicks")],
     prevent_initial_call=True
 )
-def update_now_playing(prev_clicks, next_clicks, *song_clicks):
+def update_now_playing(*clicks):
     global current_song_index
     ctx = dash.callback_context
 
@@ -172,29 +172,25 @@ def update_now_playing(prev_clicks, next_clicks, *song_clicks):
     triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
     if "song-btn" in triggered_id:
-        song_index = int(triggered_id.split("-")[-1])
-        current_song_index = song_index
+        current_song_index = int(triggered_id.split("-")[-1])
     elif triggered_id == "prev-btn":
         current_song_index = (current_song_index - 1) % len(df)
     elif triggered_id == "next-btn":
         current_song_index = (current_song_index + 1) % len(df)
 
-    # Ensure valid song selection
-    if current_song_index < 0 or current_song_index >= len(df):
-        return "Select a Song", "/assets/default_artwork.jpg", "", "", "No Lyrics Available"
+    # Get the selected song
+    song = df.iloc[current_song_index]
 
-    selected_song = df.iloc[current_song_index]
+    # Construct file URL
+    song_url = f"/music/{song['file_path']}"
 
-    # Construct file paths
-    mp3_file = f"/MusicAlbums/{os.path.relpath(selected_song['file_path'], music_dir)}"
-    artwork = f"/assets/{selected_song['artwork']}" if selected_song["artwork"] else "/assets/default_artwork.jpg"
-    lyrics = selected_song["lyrics"] if selected_song["lyrics"] else "Lyrics not available"
-
-    return (selected_song["title"], 
-            artwork, 
-            f"Album: {selected_song['album']} | Artist: {selected_song['artist']} | Genre: {selected_song['genre']} | Year: {selected_song['year']}",
-            mp3_file, 
-            lyrics)
+    return (
+        song["title"],
+        song["artwork"],
+        f"{song['artist']} - {song['album']} ({song['duration']})",
+        song_url,
+        song["lyrics"]
+    )
 
 if __name__ == '__main__':
     app.run_server(debug=True)
