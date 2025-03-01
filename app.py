@@ -140,12 +140,13 @@ html.Div([
             muted=True,
             controls=False,
             style={
-                "width": "300px",  # Adjust width
-                "height": "300px",
-                "border-radius": "10px",
+                "width": "360px",  # Adjust width
+                "height": "auto",
                 "position": "absolute",  # Positioning within the section
                 "top": "10px",
                 "right": "10px",
+                "margin-top": "10px"
+                "margin-bottom": "10px"
             }
         )
     ], style={"position": "relative", "width": "100%"}),  # Ensuring relative positioning
