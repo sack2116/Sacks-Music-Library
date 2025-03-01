@@ -127,25 +127,50 @@ app.layout = html.Div([
         ], className="lyrics-container")
     ], className="songs-lyrics-container"),
 
+html.Div([
+    html.H3("Now Playing", style={"color": "white"}),
+    
+    html.Img(id="now-playing-artwork", style={
+        "width": "120px", "height": "120px", "margin-bottom": "10px", "border-radius": "10px"
+    }),
+    
+    html.H2(id="now-playing-title", style={"font-size": "20px", "color": "white"}),
+    html.P(id="now-playing-details", style={"color": "white"}),
+
+    # Audio Player
     html.Div([
-        html.H3("Now Playing", style={"color": "white"}),
-        html.Img(id="now-playing-artwork", style={
-            "width": "120px", "height": "120px", "margin-bottom": "10px", "border-radius": "10px"
-        }),
-        html.H2(id="now-playing-title", style={"font-size": "20px", "color": "white"}),
-        html.P(id="now-playing-details", style={"color": "white"}),
+        html.Audio(id="audio-player", controls=True, autoPlay=True, style={"width": "100%"})
+    ], style={"border": "2px solid #40E0D0", "border-radius": "5px", "padding": "10px"}),
 
-        html.Div([
-            html.Audio(id="audio-player", controls=True, autoPlay=True, style={"width": "100%"})
-        ], style={"border": "2px solid #40E0D0", "border-radius": "5px", "padding": "10px"}),
+    # **New Video Player Below Audio Player**
+    html.Div([
+        html.Video(
+            id="background-video",
+            src="/assets/Sacks.mp4",  # Ensure this file exists in 'assets/'
+            autoPlay=True,
+            loop=True,
+            muted=True,
+            controls=False,
+            style={
+                "width": "200px",  # Adjust as needed
+                "height": "auto",
+                "border-radius": "10px",
+                "margin-top": "10px"
+            }
+        )
+    ], style={"text-align": "center"}),
 
-        html.Div([
-            html.Button("⏮️ Previous", id="prev-btn", className="control-button"),
-            html.Button("⏭️ Next", id="next-btn", className="control-button"),
-        ], style={"text-align": "center", "margin-top": "10px"})
-    ], className="music-player", style={
-        "background": "black", "border": "2px solid white", "border-radius": "10px", "padding": "20px"
-    })
+    # Controls
+    html.Div([
+        html.Button("⏮️ Previous", id="prev-btn", className="control-button"),
+        html.Button("⏭️ Next", id="next-btn", className="control-button"),
+    ], style={"text-align": "center", "margin-top": "10px"})
+
+], className="music-player", style={
+    "background": "black", "border": "2px solid white", "border-radius": "10px", "padding": "20px"}
+),
+
+# **Ensuring Outer Container Scrolls Properly**
 ], style={"padding": "20px", "height": "100vh", "overflow-y": "scroll"})
 
 # Store the current song index
