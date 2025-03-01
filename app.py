@@ -128,10 +128,12 @@ app.layout = html.Div([
     ], className="songs-lyrics-container"),
 
 html.Div([
-    html.H3("Now Playing", style={"color": "white"}),
+    html.H3("Now Playing", style={"color": "white", "text-align": "center"}),
 
-    # **Video Player - Positioned 10px from the Top-Right & Above Music Player**
-    html.Div([
+    # **Wrapper to Ensure Proper Positioning**
+    html.Div(style={"position": "relative", "width": "100%", "height": "auto"}, children=[
+
+        # **Video Player - Stays in the Top-Right Corner**
         html.Video(
             id="background-video",
             src="/assets/Sacks.mp4",  # Ensure the file is in the 'assets' folder
@@ -140,35 +142,37 @@ html.Div([
             muted=True,
             controls=False,
             style={
-                "width": "360px",  # Adjust width as needed
-                "height": "auto",
+                "width": "350px",  # Adjust width as needed
+                "height": "350px",
                 "border-radius": "10px",
                 "position": "absolute",
                 "top": "10px",   # 10px from the top border of "Now Playing"
                 "right": "10px",  # 10px from the right border
+                "z-index": "10"  # Keeps it above other elements
             }
         )
-    ], style={"position": "relative", "width": "100%", "height": "auto"}),
+    ]),
 
-    # Album Artwork & Song Info
+    # **Album Artwork**
     html.Img(id="now-playing-artwork", style={
         "width": "120px", "height": "120px", "margin-bottom": "10px", "border-radius": "10px"
     }),
-    
+
+    # **Song Info**
     html.H2(id="now-playing-title", style={"font-size": "20px", "color": "white"}),
     html.P(id="now-playing-details", style={"color": "white"}),
 
-    # **Music Player - Positioned 10px Below the Video**
+    # **Music Player (Now Fully Visible)**
     html.Div([
         html.Audio(id="audio-player", controls=True, autoPlay=True, style={"width": "100%"})
     ], style={
         "border": "2px solid #40E0D0",
         "border-radius": "5px",
         "padding": "10px",
-        "margin-top": "10px"  # Ensures spacing below the video
+        "margin-top": "80px"  # Increased space so the video doesn't overlap it
     }),
 
-    # Controls
+    # **Controls**
     html.Div([
         html.Button("⏮️ Previous", id="prev-btn", className="control-button"),
         html.Button("⏭️ Next", id="next-btn", className="control-button"),
@@ -178,7 +182,6 @@ html.Div([
     "background": "black", "border": "2px solid white", "border-radius": "10px", "padding": "20px",
     "position": "relative", "display": "flex", "flex-direction": "column", "align-items": "center"
 }),
-
 
 # **Ensuring Outer Container Scrolls Properly**
 ], style={"padding": "20px", "height": "100vh", "overflow-y": "scroll"})
