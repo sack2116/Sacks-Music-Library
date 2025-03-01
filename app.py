@@ -36,9 +36,8 @@ def load_songs(directory):
     return pd.DataFrame(songs)
 
 def extract_metadata(file_path):
-    """Extracts metadata (title, album, artist, genre, year) from the MP3 file and loads lyrics from a .txt file."""
     audio = MP3(file_path, ID3=ID3)
-
+    
     title = audio.tags.get("TIT2", TIT2(encoding=3, text=["Unknown Title"])).text[0]
     album = audio.tags.get("TALB", TALB(encoding=3, text=["Unknown Album"])).text[0]
     artist = audio.tags.get("TPE1", TPE1(encoding=3, text=["Unknown Artist"])).text[0]
