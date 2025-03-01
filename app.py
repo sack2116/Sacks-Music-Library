@@ -192,7 +192,7 @@ def update_now_playing(*clicks):
     return (song["title"], 
             song["artwork"], 
             f"Album: {song['album']} | Artist: {song['artist']} | Genre: {song['genre']} | Year: {song['year']}",
-            mp3_file,  # Auto-play when source changes
+            song_url,  # Auto-play when source changes
             song["lyrics"])
  
 if __name__ == '__main__':
