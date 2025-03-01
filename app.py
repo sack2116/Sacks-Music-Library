@@ -84,7 +84,7 @@ df = load_songs(MUSIC_DIR)
 
 # Initialize Dash app
 #app = dash.Dash(__name__)
-app = Dash(__name__, suppress_callback_exceptions=True)
+app = dash(__name__, suppress_callback_exceptions=True)
 server = app.server 
 app.css.config.serve_locally = True  # Forces local CSS loading
 
