@@ -51,18 +51,26 @@ def extract_metadata(file_path):
 
     return title, album, artist, genre, year, lyrics
 # Load lyrics from a .txt file with the same name as the MP3
+import glob
 import os
-import glob  # Used for searching files in a directory
 
 def load_lyrics(file_path):
-    """Loads lyrics from a corresponding .txt file based on the MP3 file name."""
-    lyrics_file = os.path.splitext(file_path)[0] + ".txt"
+    """Loads lyrics from a corresponding .txt file based on the MP3 file name or any available .txt file in the same folder."""
+    lyrics_file = os.path.splitext(file_path)[0] + ".txt"  # Expected lyrics file based on MP3 name
 
-    if os.path.exists(lyrics_file):
+    if os.path.exists(lyrics_file):  # Check if the expected file exists
         with open(lyrics_file, "r", encoding="utf-8") as f:
             return f.read()
     
-    return "No Lyrics Available"  # Return this if the lyrics file is missing
+    # If the exact match is not found, try finding any .txt file in the same directory
+    lyrics_dir = os.path.dirname(file_path)  
+    txt_files = glob.glob(os.path.join(lyrics_dir, "*.txt"))  
+    
+    if txt_files:  # If at least one .txt file is found, load the first one
+        with open(txt_files[0], "r", encoding="utf-8") as f:
+            return f.read()
+    
+    return "No Lyrics Available"  # Return this if no lyrics file is found
 
 # Format duration to mm:ss
 def format_duration(file_path):
