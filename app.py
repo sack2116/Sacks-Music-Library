@@ -140,8 +140,8 @@ html.Div([
             muted=True,
             controls=False,
             style={
-                "width": "150px",  # Adjust width
-                "height": "auto",
+                "width": "300px",  # Adjust width
+                "height": "300px",
                 "border-radius": "10px",
                 "position": "absolute",  # Positioning within the section
                 "top": "10px",
