@@ -55,14 +55,12 @@ import os
 import glob  # Used for searching files in a directory
 
 def load_lyrics(file_path):
-    """Loads lyrics from a corresponding .txt file based on the MP3 file name."""
-    lyrics_file = os.path.splitext(file_path)[0] + ".txt"
-
-    if os.path.exists(lyrics_file):
-        with open(lyrics_file, "r", encoding="utf-8") as f:
+    lyrics_dir = os.path.dirname(file_path)  
+    txt_files = glob.glob(os.path.join(lyrics_dir, "*.txt"))  
+    if txt_files:  
+        with open(txt_files[0], "r", encoding="utf-8") as f:  
             return f.read()
-    
-    return "No Lyrics Available"  # Return this if the lyrics file is missing
+    return "No Lyrics Available"
 
 # Format duration to mm:ss
 def format_duration(file_path):
@@ -189,13 +187,11 @@ def update_now_playing(*clicks):
     # Construct file URL
     song_url = f"/music/{song['file_path']}"
 
-    return (
-        song["title"],
-        song["artwork"],
-        f"{song['artist']} - {song['album']} ({song['duration']})",
-        song_url,
-        song["lyrics"]
-    )
+    return (selected_song["title"], 
+            selected_song["artwork"], 
+            f"Album: {selected_song['album']} | Artist: {selected_song['artist']} | Genre: {selected_song['genre']} | Year: {selected_song['year']}",
+            mp3_file,  # Auto-play when source changes
+            selected_song["lyrics"])
 
 if __name__ == '__main__':
     app.run_server(debug=True)
