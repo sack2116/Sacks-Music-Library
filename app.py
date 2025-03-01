@@ -130,27 +130,26 @@ app.layout = html.Div([
 html.Div([
     html.H3("Now Playing", style={"color": "white"}),
 
-    # **New Video Player - Positioned at the Top-Right Corner**
+    # **Video Player - Positioned 10px from the Top-Right & Above Music Player**
     html.Div([
         html.Video(
             id="background-video",
-            src="/assets/Sacks.mp4",  # Ensure the file exists in 'assets/'
+            src="/assets/Sacks.mp4",  # Ensure the file is in the 'assets' folder
             autoPlay=True,
             loop=True,
             muted=True,
             controls=False,
             style={
-                "width": "360px",  # Adjust width
+                "width": "360px",  # Adjust width as needed
                 "height": "auto",
-                "position": "absolute",  # Positioning within the section
-                "top": "10px",
-                "right": "10px",
-                "margin-top": "10px",
-                "margin-bottom": "10px",
+                "border-radius": "10px",
+                "position": "absolute",
+                "top": "10px",   # 10px from the top border of "Now Playing"
+                "right": "10px",  # 10px from the right border
             }
         )
-    ], style={"position": "relative", "width": "100%"}),  # Ensuring relative positioning
-    
+    ], style={"position": "relative", "width": "100%", "height": "auto"}),
+
     # Album Artwork & Song Info
     html.Img(id="now-playing-artwork", style={
         "width": "120px", "height": "120px", "margin-bottom": "10px", "border-radius": "10px"
@@ -159,10 +158,15 @@ html.Div([
     html.H2(id="now-playing-title", style={"font-size": "20px", "color": "white"}),
     html.P(id="now-playing-details", style={"color": "white"}),
 
-    # Audio Player
+    # **Music Player - Positioned 10px Below the Video**
     html.Div([
         html.Audio(id="audio-player", controls=True, autoPlay=True, style={"width": "100%"})
-    ], style={"border": "2px solid #40E0D0", "border-radius": "5px", "padding": "10px"}),
+    ], style={
+        "border": "2px solid #40E0D0",
+        "border-radius": "5px",
+        "padding": "10px",
+        "margin-top": "10px"  # Ensures spacing below the video
+    }),
 
     # Controls
     html.Div([
@@ -172,8 +176,8 @@ html.Div([
 
 ], className="music-player", style={
     "background": "black", "border": "2px solid white", "border-radius": "10px", "padding": "20px",
-    "position": "relative"}  # Ensure relative positioning inside "Now Playing"
-),
+    "position": "relative", "display": "flex", "flex-direction": "column", "align-items": "center"
+}),
 
 
 # **Ensuring Outer Container Scrolls Properly**
