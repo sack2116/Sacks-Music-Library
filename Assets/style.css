@@ -12,7 +12,7 @@ body {
 .songs-lyrics-container {
     display: flex;  
     justify-content: center; /* Centers them */
-    align-items: stretch; /* Ensures equal height */
+    align-items: stretch; /* -Ensures equal height */
     width: 100%;
     gap: 50px; /* Creates ~2-inch space */
     min-height: 400px;
