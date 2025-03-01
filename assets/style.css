@@ -1,6 +1,6 @@
 /* Ensure full width & remove extra spacing */
 body {
-    background: url("/assets/Background.png") no-repeat center center fixed;
+    background: url("/assets/Background.png") no-repeat top center fixed;
     background-size: cover;
     color: white;
     font-family: Arial, sans-serif;
@@ -10,27 +10,63 @@ body {
 
 /* Container for song list & lyrics */
 .songs-lyrics-container {
-    display: flex;  
-    justify-content: center; /* Centers them */
-    align-items: stretch; /* -Ensures equal height */
-    width: 100%;
-    gap: 50px; /* Creates ~2-inch space */
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    width: 90%;
+    gap: 30px;
     min-height: 400px;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 20px;
+    box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.5);
+    margin: 20px auto;
 }
 
-/* Song list and lyrics container - equal size */
+/* Heading Button Style for "Available Songs" and "Lyrics" */
+.section-heading {
+    background: linear-gradient(135deg, #76B9F0, #4A90E2);
+    color: white;
+    text-align: center;
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 18px;
+    font-weight: bold;
+    margin: 0;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Song list and lyrics container */
 .song-list, .lyrics-container {
-    width: 750px; /* Ensures equal size */
+    width: 750px;
     display: flex;
     flex-direction: column;
-    overflow-y: scroll;
+    overflow-y: auto;
     max-height: 600px;
     padding: 10px;
-    border-radius: 5px;
-    flex-grow: 1; /* Makes both grow evenly */
+    border-radius: 10px;
+    flex-grow: 1;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid #76B9F0;
 }
 
-/* BUTTON STYLING */
+/* Individual Song Styling */
+.song-item {
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid gray;
+    padding: 5px;
+}
+
+/* Song Artwork */
+.song-artwork {
+    width: 40px;
+    height: 40px;
+    margin-right: 10px;
+    border-radius: 5px;
+}
+
+/* Button Styling */
 .song-button {
     display: flex;
     align-items: center;
@@ -46,13 +82,12 @@ body {
     transition: background 0.3s, color 0.3s;
 }
 
-/* Hover Effect */
 .song-button:hover {
     background: white;
     color: #76B9F0;
 }
 
-/* MUSIC PLAYER (Fixed at the bottom) */
+/* Music Player */
 .music-player {
     text-align: center;
     width: 100%;
@@ -63,30 +98,4 @@ body {
     bottom: 0;
     left: 0;
     right: 0;
-}
-.control-button {
-    background: linear-gradient(135deg, #76B9F0, #4A90E2); /* Gradient background */
-    color: white;
-    font-size: 20px; /* Bigger text */
-    font-weight: bold;
-    border: none;
-    padding: 15px 25px; /* Larger size */
-    border-radius: 50px; /* Rounded buttons */
-    cursor: pointer;
-    transition: background 0.3s, transform 0.2s, box-shadow 0.3s;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
-}
-
-.control-button:hover {
-    background: linear-gradient(135deg, #4A90E2, #1E6FE3); /* Darker gradient on hover */
-    transform: scale(1.15); /* Slightly enlarges */
-    box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.3);
-}
-
-.control-button:active {
-    transform: scale(1.05); /* Slight shrink on click for a press effect */
-    box-shadow: 0px 3px 8px rgba(0, 0, 0, 0.3);
 }
