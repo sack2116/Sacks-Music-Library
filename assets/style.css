@@ -99,3 +99,15 @@ body {
     left: 0;
     right: 0;
 }
+.lyrics-container {
+    text-align: center;
+    font-size: 18px;
+    color: white;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 20px;
+    border-radius: 10px;
+    width: 80%;
+    margin: 0 auto;
+    white-space: pre-line; /* This preserves line breaks in lyrics */
+}
+
