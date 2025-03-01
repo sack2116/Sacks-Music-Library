@@ -1,6 +1,6 @@
 /* Ensure full width & remove extra spacing */
 body {
-    background: url('background.png') no-repeat top center fixed;
+    background: url('/assets/background.png') no-repeat top center fixed;
     background-size: cover;
     color: white;
     font-family: Arial, sans-serif;
