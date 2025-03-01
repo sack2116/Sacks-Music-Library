@@ -55,12 +55,14 @@ import os
 import glob  # Used for searching files in a directory
 
 def load_lyrics(file_path):
-    lyrics_dir = os.path.dirname(file_path)  
-    txt_files = glob.glob(os.path.join(lyrics_dir, "*.txt"))  
-    if txt_files:  
-        with open(txt_files[0], "r", encoding="utf-8") as f:  
+    """Loads lyrics from a corresponding .txt file based on the MP3 file name."""
+    lyrics_file = os.path.splitext(file_path)[0] + ".txt"
+
+    if os.path.exists(lyrics_file):
+        with open(lyrics_file, "r", encoding="utf-8") as f:
             return f.read()
-    return "No Lyrics Available"
+    
+    return "No Lyrics Available"  # Return this if the lyrics file is missing
 
 # Format duration to mm:ss
 def format_duration(file_path):
