@@ -145,8 +145,8 @@ html.Div([
                 "position": "absolute",  # Positioning within the section
                 "top": "10px",
                 "right": "10px",
-                "margin-top": "10px"
-                "margin-bottom": "10px"
+                "margin-top": "10px",
+                "margin-bottom": "10px",
             }
         )
     ], style={"position": "relative", "width": "100%"}),  # Ensuring relative positioning
