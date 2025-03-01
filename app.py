@@ -129,7 +129,28 @@ app.layout = html.Div([
 
 html.Div([
     html.H3("Now Playing", style={"color": "white"}),
+
+    # **New Video Player - Positioned at the Top-Right Corner**
+    html.Div([
+        html.Video(
+            id="background-video",
+            src="/assets/Sacks.mp4",  # Ensure the file exists in 'assets/'
+            autoPlay=True,
+            loop=True,
+            muted=True,
+            controls=False,
+            style={
+                "width": "150px",  # Adjust width
+                "height": "auto",
+                "border-radius": "10px",
+                "position": "absolute",  # Positioning within the section
+                "top": "10px",
+                "right": "10px",
+            }
+        )
+    ], style={"position": "relative", "width": "100%"}),  # Ensuring relative positioning
     
+    # Album Artwork & Song Info
     html.Img(id="now-playing-artwork", style={
         "width": "120px", "height": "120px", "margin-bottom": "10px", "border-radius": "10px"
     }),
@@ -142,24 +163,6 @@ html.Div([
         html.Audio(id="audio-player", controls=True, autoPlay=True, style={"width": "100%"})
     ], style={"border": "2px solid #40E0D0", "border-radius": "5px", "padding": "10px"}),
 
-    # **New Video Player Below Audio Player**
-    html.Div([
-        html.Video(
-            id="background-video",
-            src="/assets/Sacks.mp4",  # Ensure this file exists in 'assets/'
-            autoPlay=True,
-            loop=True,
-            muted=True,
-            controls=False,
-            style={
-                "width": "200px",  # Adjust as needed
-                "height": "auto",
-                "border-radius": "10px",
-                "margin-top": "10px"
-            }
-        )
-    ], style={"text-align": "center"}),
-
     # Controls
     html.Div([
         html.Button("⏮️ Previous", id="prev-btn", className="control-button"),
@@ -167,8 +170,10 @@ html.Div([
     ], style={"text-align": "center", "margin-top": "10px"})
 
 ], className="music-player", style={
-    "background": "black", "border": "2px solid white", "border-radius": "10px", "padding": "20px"}
+    "background": "black", "border": "2px solid white", "border-radius": "10px", "padding": "20px",
+    "position": "relative"}  # Ensure relative positioning inside "Now Playing"
 ),
+
 
 # **Ensuring Outer Container Scrolls Properly**
 ], style={"padding": "20px", "height": "100vh", "overflow-y": "scroll"})
