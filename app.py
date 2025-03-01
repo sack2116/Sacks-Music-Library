@@ -83,7 +83,9 @@ def get_artwork_thumbnail(file_path):
 df = load_songs(MUSIC_DIR)
 
 # Initialize Dash app
-app = dash.Dash(__name__)
+#app = dash.Dash(__name__)
+app = dash.Dash(__name__, external_stylesheets=["/assets/style.css"])
+
 server = app.server 
 app.css.config.serve_locally = True  # Forces local CSS loading
 
