@@ -105,43 +105,36 @@ def serve_music(song_path):
         return send_file(full_path, mimetype="audio/mpeg")
     return "File Not Found", 404
 
-# App Layout
 app.layout = html.Div([
     html.H1([
         html.Span("🎵", style={"color": "#ff66c4", "font-size": "36px", "margin-right": "10px"}),
         "Isaac's Personal Music Library and Player"
     ], style={"text-align": "center"}),
 
-    # Unified Container for Available Songs & Lyrics
+    # Unified Container for Songs & Lyrics
     html.Div([
         html.Div([
-            html.H3("Available Songs", style={"text-align": "center", "color": "#ff66c4"}),
+            html.H3("Available Songs", className="section-heading"),
             html.Div([
                 html.Div([
-                    html.Img(src=row['artwork'], style={"width": "40px", "height": "40px", "margin-right": "10px", "border-radius": "5px"}),
+                    html.Img(src=row['artwork'], className="song-artwork"),
                     html.Button(
                         f"{row['title']} - {row['album']} ({row['duration']})",
                         id=f"song-btn-{i}",
                         n_clicks=0,
                         className="song-button"
                     )
-                ], style={"display": "flex", "align-items": "center", "border-bottom": "1px solid gray", "padding": "5px"})
+                ], className="song-item")
                 for i, row in df.iterrows()
-            ], id="songs-list", style={"overflow-y": "auto", "max-height": "400px", "padding": "10px"})
-        ], style={"width": "48%"}),  
+            ], id="songs-list", className="songs-list-container")
+        ], className="song-list"),
 
         html.Div([
-            html.H3("Lyrics", style={"text-align": "center", "color": "#ff66c4"}),
-            html.Div(id="lyrics", className="lyrics-container", style={
-                "white-space": "pre-wrap",
-                "overflow-y": "auto",
-                "max-height": "400px",
-                "padding": "10px",
-                "text-align": "center",
-                "height": "400px"
-            })
-        ], style={"width": "48%"})
-    ], style={"display": "flex", "justify-content": "space-between", "gap": "4%", "padding": "15px"}),
+            html.H3("Lyrics", className="section-heading"),
+            html.Div(id="lyrics", className="lyrics-container")
+        ], className="lyrics-container")
+    ], className="songs-lyrics-container")
+])
 
     # Now Playing Section
     html.Div([
