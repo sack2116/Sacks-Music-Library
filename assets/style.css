@@ -1,0 +1,92 @@
+/* Ensure full width & remove extra spacing */
+body {
+    background: url('/assets/background.png') no-repeat top center fixed;
+    background-size: cover;
+    color: white;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+/* Container for song list & lyrics */
+.songs-lyrics-container {
+    display: flex;  
+    justify-content: center; /* Centers them */
+    align-items: stretch; /* -Ensures equal height */
+    width: 100%;
+    gap: 50px; /* Creates ~2-inch space */
+    min-height: 400px;
+}
+
+/* Song list and lyrics container - equal size */
+.song-list, .lyrics-container {
+    width: 750px; /* Ensures equal size */
+    display: flex;
+    flex-direction: column;
+    overflow-y: scroll;
+    max-height: 600px;
+    padding: 10px;
+    border-radius: 5px;
+    flex-grow: 1; /* Makes both grow evenly */
+}
+
+/* BUTTON STYLING */
+.song-button {
+    display: flex;
+    align-items: center;
+    background: #76B9F0;
+    color: black;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    padding: 12px;
+    font-size: 16px;
+    border-radius: 5px;
+    transition: background 0.3s, color 0.3s;
+}
+
+/* Hover Effect */
+.song-button:hover {
+    background: white;
+    color: #76B9F0;
+}
+
+/* MUSIC PLAYER (Fixed at the bottom) */
+.music-player {
+    text-align: center;
+    width: 100%;
+    padding: 10px;
+    background: #111;
+    border-radius: 10px;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+}
+.control-button {
+    background: linear-gradient(135deg, #76B9F0, #4A90E2); /* Gradient background */
+    color: white;
+    font-size: 20px; /* Bigger text */
+    font-weight: bold;
+    border: none;
+    padding: 15px 25px; /* Larger size */
+    border-radius: 50px; /* Rounded buttons */
+    cursor: pointer;
+    transition: background 0.3s, transform 0.2s, box-shadow 0.3s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.control-button:hover {
+    background: linear-gradient(135deg, #4A90E2, #1E6FE3); /* Darker gradient on hover */
+    transform: scale(1.15); /* Slightly enlarges */
+    box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.3);
+}
+
+.control-button:active {
+    transform: scale(1.05); /* Slight shrink on click for a press effect */
+    box-shadow: 0px 3px 8px rgba(0, 0, 0, 0.3);
+}
