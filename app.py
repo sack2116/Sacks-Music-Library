@@ -35,10 +35,10 @@ def load_songs(directory):
                 })
     return pd.DataFrame(songs)
 
-# Extract metadata (title, album, artist, genre, year, lyrics)
 def extract_metadata(file_path):
+    """Extracts metadata (title, album, artist, genre, year) from the MP3 file and loads lyrics from a .txt file."""
     audio = MP3(file_path, ID3=ID3)
-    
+
     title = audio.tags.get("TIT2", TIT2(encoding=3, text=["Unknown Title"])).text[0]
     album = audio.tags.get("TALB", TALB(encoding=3, text=["Unknown Album"])).text[0]
     artist = audio.tags.get("TPE1", TPE1(encoding=3, text=["Unknown Artist"])).text[0]
@@ -47,20 +47,23 @@ def extract_metadata(file_path):
     year_tag = audio.tags.get("TYER") or audio.tags.get("TDRC")
     year = year_tag.text[0] if year_tag else "Unknown Year"
 
+    # Load lyrics from the .txt file only
     lyrics = load_lyrics(file_path)
 
     return title, album, artist, genre, year, lyrics
-
 # Load lyrics from a .txt file with the same name as the MP3
-import glob
+import os
+import glob  # Used for searching files in a directory
 
 def load_lyrics(file_path):
+    """Loads lyrics from a corresponding .txt file based on the MP3 file name."""
     lyrics_file = os.path.splitext(file_path)[0] + ".txt"
 
-    if os.path.exists(lyrics_file):  
-        with open(lyrics_file, "r", encoding="utf-8") as f:  
+    if os.path.exists(lyrics_file):
+        with open(lyrics_file, "r", encoding="utf-8") as f:
             return f.read()
-    return "No Lyrics Available"
+    
+    return "No Lyrics Available"  # Return this if the lyrics file is missing
 
 # Format duration to mm:ss
 def format_duration(file_path):
