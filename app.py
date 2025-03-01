@@ -6,12 +6,13 @@ from dash import html, dcc, Output, Input
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, TIT2, TALB, TPE1, TCON, TYER, USLT, APIC
 from flask import Flask, send_file
+import glob
 
-# Define the root music directory based on the repo structure
+# Define the root music directory
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MUSIC_DIR = os.path.join(BASE_DIR, "MusicAlbums")
 
-# Load song metadata (recursively searching inside subfolders)
+# Load song metadata
 def load_songs(directory):
     songs = []
     for root, _, files in os.walk(directory):  
@@ -21,7 +22,7 @@ def load_songs(directory):
                 title, album, artist, genre, year, lyrics = extract_metadata(file_path)
                 duration = format_duration(file_path)
                 artwork = get_artwork_thumbnail(file_path)
-                relative_path = os.path.relpath(file_path, BASE_DIR)  # Use relative path for serving
+                relative_path = os.path.relpath(file_path, BASE_DIR)
                 songs.append({
                     "title": title, 
                     "album": album, 
@@ -30,88 +31,79 @@ def load_songs(directory):
                     "year": year,
                     "duration": duration, 
                     "artwork": artwork, 
-                    "file_path": relative_path,  # Updated for relative paths
+                    "file_path": relative_path,
                     "lyrics": lyrics
                 })
     return pd.DataFrame(songs)
 
+# Extract metadata
 def extract_metadata(file_path):
     audio = MP3(file_path, ID3=ID3)
-    
     title = audio.tags.get("TIT2", TIT2(encoding=3, text=["Unknown Title"])).text[0]
     album = audio.tags.get("TALB", TALB(encoding=3, text=["Unknown Album"])).text[0]
     artist = audio.tags.get("TPE1", TPE1(encoding=3, text=["Unknown Artist"])).text[0]
     genre = audio.tags.get("TCON", TCON(encoding=3, text=["Unknown Genre"])).text[0]
-
+    
     year_tag = audio.tags.get("TYER") or audio.tags.get("TDRC")
     year = year_tag.text[0] if year_tag else "Unknown Year"
-
-    # Load lyrics from the .txt file only
     lyrics = load_lyrics(file_path)
 
     return title, album, artist, genre, year, lyrics
-# Load lyrics from a .txt file with the same name as the MP3
-import glob
-import os
 
+# Load lyrics
 def load_lyrics(file_path):
-    """Loads lyrics from a corresponding .txt file based on the MP3 file name or any available .txt file in the same folder."""
-    lyrics_file = os.path.splitext(file_path)[0] + ".txt"  # Expected lyrics file based on MP3 name
-
-    if os.path.exists(lyrics_file):  # Check if the expected file exists
+    lyrics_file = os.path.splitext(file_path)[0] + ".txt"
+    if os.path.exists(lyrics_file):
         with open(lyrics_file, "r", encoding="utf-8") as f:
             return f.read()
     
-    # If the exact match is not found, try finding any .txt file in the same directory
-    lyrics_dir = os.path.dirname(file_path)  
-    txt_files = glob.glob(os.path.join(lyrics_dir, "*.txt"))  
+    lyrics_dir = os.path.dirname(file_path)
+    txt_files = glob.glob(os.path.join(lyrics_dir, "*.txt"))
     
-    if txt_files:  # If at least one .txt file is found, load the first one
+    if txt_files:
         with open(txt_files[0], "r", encoding="utf-8") as f:
             return f.read()
     
-    return "No Lyrics Available"  # Return this if no lyrics file is found
+    return "No Lyrics Available"
 
-# Format duration to mm:ss
+# Format duration
 def format_duration(file_path):
     audio = MP3(file_path)
     total_seconds = int(audio.info.length)
     minutes, seconds = divmod(total_seconds, 60)
     return f"{minutes}:{seconds:02d}"
 
-# Get artwork thumbnail (base64 encoding for Dash)
+# Get artwork
 def get_artwork_thumbnail(file_path):
     audio = MP3(file_path, ID3=ID3)
     for tag in audio.tags.values():
         if isinstance(tag, APIC):  
             return f"data:image/jpeg;base64,{base64.b64encode(tag.data).decode()}"
-    return os.path.join("assets", "default_artwork.jpg")  # Use repo structure
+    return os.path.join("assets", "default_artwork.jpg")
 
-# Load songs from the MusicAlbums directory
+# Load songs
 df = load_songs(MUSIC_DIR)
 
 # Initialize Dash app
-#app = dash.Dash(__name__)
 app = dash.Dash(__name__, external_stylesheets=["/assets/style.css"])
+server = app.server
+app.css.config.serve_locally = True  
 
-server = app.server 
-app.css.config.serve_locally = True  # Forces local CSS loading
-
+# Serve music files
 @app.server.route("/music/<path:song_path>")
 def serve_music(song_path):
     full_path = os.path.abspath(os.path.join(BASE_DIR, song_path))
-
     if os.path.exists(full_path):
         return send_file(full_path, mimetype="audio/mpeg")
     return "File Not Found", 404
 
+# App Layout
 app.layout = html.Div([
     html.H1([
         html.Span("🎵", style={"color": "#ff66c4", "font-size": "36px", "margin-right": "10px"}),
         "Isaac's Personal Music Library and Player"
     ], style={"text-align": "center"}),
 
-    # Unified Container for Songs & Lyrics
     html.Div([
         html.Div([
             html.H3("Available Songs", className="section-heading"),
@@ -133,13 +125,13 @@ app.layout = html.Div([
             html.H3("Lyrics", className="section-heading"),
             html.Div(id="lyrics", className="lyrics-container")
         ], className="lyrics-container")
-    ], className="songs-lyrics-container")
-])
+    ], className="songs-lyrics-container"),
 
-    # Now Playing Section
     html.Div([
         html.H3("Now Playing", style={"color": "white"}),
-        html.Img(id="now-playing-artwork", style={"width": "120px", "height": "120px", "margin-bottom": "10px", "border-radius": "10px"}),
+        html.Img(id="now-playing-artwork", style={
+            "width": "120px", "height": "120px", "margin-bottom": "10px", "border-radius": "10px"
+        }),
         html.H2(id="now-playing-title", style={"font-size": "20px", "color": "white"}),
         html.P(id="now-playing-details", style={"color": "white"}),
 
@@ -151,7 +143,9 @@ app.layout = html.Div([
             html.Button("⏮️ Previous", id="prev-btn", className="control-button"),
             html.Button("⏭️ Next", id="next-btn", className="control-button"),
         ], style={"text-align": "center", "margin-top": "10px"})
-    ], className="music-player", style={"background": "black", "border": "2px solid white", "border-radius": "10px", "padding": "20px"})
+    ], className="music-player", style={
+        "background": "black", "border": "2px solid white", "border-radius": "10px", "padding": "20px"
+    })
 ], style={"padding": "20px", "height": "100vh", "overflow-y": "scroll"})
 
 # Store the current song index
@@ -174,7 +168,6 @@ def update_now_playing(*clicks):
     if not ctx.triggered:
         return "Select a Song", "/assets/default_artwork.jpg", "", "", "No Lyrics Available"
 
-    # Identify which button was clicked
     triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
     if "song-btn" in triggered_id:
@@ -184,17 +177,14 @@ def update_now_playing(*clicks):
     elif triggered_id == "next-btn":
         current_song_index = (current_song_index + 1) % len(df)
 
-    # Get the selected song
     song = df.iloc[current_song_index]
-
-    # Construct file URL
     song_url = f"/music/{song['file_path']}"
 
     return (song["title"], 
             song["artwork"], 
             f"Album: {song['album']} | Artist: {song['artist']} | Genre: {song['genre']} | Year: {song['year']}",
-            song_url,  # Auto-play when source changes
+            song_url,
             song["lyrics"])
- 
+
 if __name__ == '__main__':
     app.run_server(debug=True)
