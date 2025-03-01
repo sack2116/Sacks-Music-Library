@@ -189,11 +189,11 @@ def update_now_playing(*clicks):
     # Construct file URL
     song_url = f"/music/{song['file_path']}"
 
-    return (selected_song["title"], 
-            selected_song["artwork"], 
-            f"Album: {selected_song['album']} | Artist: {selected_song['artist']} | Genre: {selected_song['genre']} | Year: {selected_song['year']}",
+    return (song["title"], 
+            song["artwork"], 
+            f"Album: {song['album']} | Artist: {selected_song['artist']} | Genre: {selected_song['genre']} | Year: {selected_song['year']}",
             mp3_file,  # Auto-play when source changes
-            selected_song["lyrics"])
-
+            song["lyrics"])
+ 
 if __name__ == '__main__':
     app.run_server(debug=True)
