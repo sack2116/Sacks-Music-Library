@@ -116,19 +116,25 @@ app.layout = html.Div([
         "Isaac's Personal Music Library and Player"
     ], style={"text-align": "center"}),
 
+    # Songs & Lyrics Section
     html.Div([
         html.Div([
             html.H3("Available Songs", className="section-heading"),
-            html.Div(song_list, id="songs-list", className="songs-list-container")  # ✅ Fixed
-        ], className="song-list"),
+            html.Div(song_list, id="songs-list", className="songs-list-container")
+        ], className="song-list", style={"width": "45%"}),  # ✅ Set width
 
         html.Div([
             html.H3("Lyrics", className="section-heading"),
             html.Div(id="lyrics", className="lyrics-container")
-        ], className="lyrics-container")
-    ], className="songs-lyrics-container"),
+        ], className="lyrics-container", style={"width": "45%"})  # ✅ Set width
+    ], className="songs-lyrics-container", style={
+        "display": "flex",
+        "justify-content": "space-between",
+        "width": "90%",  # ✅ Total width
+        "margin": "auto"
+    }),
 
-    # Now Playing Section (No Changes Here)
+    # Now Playing Section
     html.Div([
         html.H3("Now Playing", style={"color": "white", "text-align": "center"}),
 
@@ -183,10 +189,10 @@ app.layout = html.Div([
         "display": "flex",
         "flex-direction": "column",
         "align-items": "center",
-        "width": "300px"
+        "width": "90%",  # ✅ Match the width of `songs-lyrics-container`
+        "margin": "20px auto"
     })
 ])
-
 
 # Store the current song index
 current_song_index = 0  
