@@ -97,7 +97,19 @@ def serve_music(song_path):
         return send_file(full_path, mimetype="audio/mpeg")
     return "File Not Found", 404
 
-# App Layout
+song_list = [
+    html.Div([
+        html.Img(src=row['artwork'], className="song-artwork"),
+        html.Button(
+            f"{row['title']} - {row['album']} ({row['duration']})",
+            id=f"song-btn-{i}",
+            n_clicks=0,
+            className="song-button"
+        )
+    ], className="song-item")
+    for i, row in df.iterrows()
+]
+
 app.layout = html.Div([
     html.H1([
         html.Span("🎵", style={"color": "#ff66c4", "font-size": "36px", "margin-right": "10px"}),
@@ -107,18 +119,7 @@ app.layout = html.Div([
     html.Div([
         html.Div([
             html.H3("Available Songs", className="section-heading"),
-            html.Div([
-                html.Div([
-                    html.Img(src=row['artwork'], className="song-artwork"),
-                    html.Button(
-                        f"{row['title']} - {row['album']} ({row['duration']})",
-                        id=f"song-btn-{i}",
-                        n_clicks=0,
-                        className="song-button"
-                    )
-                ], className="song-item")
-                for i, row in df.iterrows()
-            ], id="songs-list", className="songs-list-container")
+            html.Div(song_list, id="songs-list", className="songs-list-container")  # ✅ Fixed
         ], className="song-list"),
 
         html.Div([
@@ -127,67 +128,65 @@ app.layout = html.Div([
         ], className="lyrics-container")
     ], className="songs-lyrics-container"),
 
-html.Div([
-    html.H3("Now Playing", style={"color": "white", "text-align": "center"}),
-
-    # Wrapper to contain the video inside the Now Playing section
-    html.Div(style={"position": "relative", "width": "100%", "text-align": "right"}, children=[
-        html.Video(
-            id="background-video",
-            src="/assets/Sacks.mp4",
-            autoPlay=True,
-            loop=True,
-            muted=True,
-            controls=False,
-            style={
-                "width": "220px",  # Adjust video size
-                "height": "220px",
-                "border-radius": "10px",
-                "position": "absolute",
-                "top": "10px",
-                "right": "10px",
-                "z-index": "5"
-            }
-        )
-    ]),
-
-    # Album Artwork
-    html.Img(id="now-playing-artwork", style={
-        "width": "120px", "height": "120px", "margin-top": "20px", "border-radius": "10px", "display": "block"
-    }),
-
-    # Song Info
-    html.H2(id="now-playing-title", style={"font-size": "20px", "color": "white", "text-align": "center"}),
-    html.P(id="now-playing-details", style={"color": "white", "text-align": "center"}),
-
-    # Fixed Audio Player
+    # Now Playing Section (No Changes Here)
     html.Div([
-        html.Audio(id="audio-player", controls=True, autoPlay=True, style={"width": "100%", "height": "80px"})
-    ], style={
-        "border": "2px solid #40E0D0",
-        "border-radius": "5px",
-        "padding": "10px",
-        "width": "100%",  # Make sure it takes full width
-        "margin-top": "10px"
-    }),
+        html.H3("Now Playing", style={"color": "white", "text-align": "center"}),
 
-    # Playback Controls
-    html.Div([
-        html.Button("⏮️ Previous", id="prev-btn", className="control-button"),
-        html.Button("⏭️ Next", id="next-btn", className="control-button"),
-    ], style={"text-align": "center", "margin-top": "10px"})
+        html.Div(style={"position": "relative", "width": "100%", "text-align": "right"}, children=[
+            html.Video(
+                id="background-video",
+                src="/assets/Sacks.mp4",
+                autoPlay=True,
+                loop=True,
+                muted=True,
+                controls=False,
+                style={
+                    "width": "220px",
+                    "height": "220px",
+                    "border-radius": "10px",
+                    "position": "absolute",
+                    "top": "10px",
+                    "right": "10px",
+                    "z-index": "5"
+                }
+            )
+        ]),
 
-], className="music-player", style={
-    "background": "black",
-    "border": "2px solid white",
-    "border-radius": "10px",
-    "padding": "20px",
-    "position": "relative",
-    "display": "flex",
-    "flex-direction": "column",
-    "align-items": "center",
-    "width": "300px"  # Adjust width if needed
-})
+        html.Img(id="now-playing-artwork", style={
+            "width": "120px", "height": "120px", "margin-top": "20px", "border-radius": "10px", "display": "block"
+        }),
+
+        html.H2(id="now-playing-title", style={"font-size": "20px", "color": "white", "text-align": "center"}),
+        html.P(id="now-playing-details", style={"color": "white", "text-align": "center"}),
+
+        html.Div([
+            html.Audio(id="audio-player", controls=True, autoPlay=True, style={"width": "100%", "height": "80px"})
+        ], style={
+            "border": "2px solid #40E0D0",
+            "border-radius": "5px",
+            "padding": "10px",
+            "width": "100%",
+            "margin-top": "10px"
+        }),
+
+        html.Div([
+            html.Button("⏮️ Previous", id="prev-btn", className="control-button"),
+            html.Button("⏭️ Next", id="next-btn", className="control-button"),
+        ], style={"text-align": "center", "margin-top": "10px"})
+
+    ], className="music-player", style={
+        "background": "black",
+        "border": "2px solid white",
+        "border-radius": "10px",
+        "padding": "20px",
+        "position": "relative",
+        "display": "flex",
+        "flex-direction": "column",
+        "align-items": "center",
+        "width": "300px"
+    })
+])
+
 
 # Store the current song index
 current_song_index = 0  
