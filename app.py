@@ -140,8 +140,8 @@ html.Div([
             muted=True,
             controls=False,
             style={
-                "width": "120px",  # Adjust video size
-                "height": "120px",
+                "width": "220px",  # Adjust video size
+                "height": "220px",
                 "border-radius": "10px",
                 "position": "absolute",
                 "top": "10px",
