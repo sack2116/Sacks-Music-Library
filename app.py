@@ -162,7 +162,7 @@ html.Div([
 
     # Fixed Audio Player
     html.Div([
-        html.Audio(id="audio-player", controls=True, autoPlay=True, style={"width": "100%", "height": "40px"})
+        html.Audio(id="audio-player", controls=True, autoPlay=True, style={"width": "100%", "height": "80px"})
     ], style={
         "border": "2px solid #40E0D0",
         "border-radius": "5px",
@@ -187,7 +187,7 @@ html.Div([
     "flex-direction": "column",
     "align-items": "center",
     "width": "300px"  # Adjust width if needed
-}),
+})
 
 # Store the current song index
 current_song_index = 0  
