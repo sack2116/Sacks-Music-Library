@@ -6,9 +6,8 @@ from dash import html, dcc, Output, Input
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, TIT2, TALB, TPE1, TCON, TYER, APIC
 from flask import Flask, send_file
-import glob
 
-# Define the root music directory
+# Define music directory
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MUSIC_DIR = os.path.join(BASE_DIR, "MusicAlbums")
 
@@ -43,10 +42,8 @@ def extract_metadata(file_path):
     album = audio.tags.get("TALB", TALB(encoding=3, text=["Unknown Album"])).text[0]
     artist = audio.tags.get("TPE1", TPE1(encoding=3, text=["Unknown Artist"])).text[0]
     genre = audio.tags.get("TCON", TCON(encoding=3, text=["Unknown Genre"])).text[0]
-    
     year_tag = audio.tags.get("TYER") or audio.tags.get("TDRC")
     year = year_tag.text[0] if year_tag else "Unknown Year"
-
     return title, album, artist, genre, year
 
 # Format duration
@@ -132,7 +129,13 @@ app.layout = html.Div([
         html.Audio(id="audio-player", controls=True, autoPlay=True, style={"width": "100%", "height": "80px"}),
 
         html.Button("❤️", id="favorite-btn", className="control-button", n_clicks=0)
-    ], className="music-player")
+    ], className="music-player"),
+
+    # Lyrics Section (Restored)
+    html.Div([
+        html.H3("Lyrics", className="section-heading"),
+        dcc.Textarea(id="lyrics-display", style={"width": "100%", "height": "200px"}, readOnly=True)
+    ], className="lyrics-section")
 ])
 
 # Callbacks
@@ -189,22 +192,6 @@ def update_now_playing(*clicks):
     song_url = f"/music/{song['file_path']}"
 
     return song["title"], song["artwork"], f"Album: {song['album']} | Artist: {song['artist']} | Genre: {song['genre']} | Year: {song['year']}", song_url
-
-# Update Favorite Status
-@app.callback(
-    Output("songs-list", "children"),
-    [Input(f"fav-btn-{i}", "n_clicks") for i in range(len(df))]
-)
-def toggle_favorite(*clicks):
-    ctx = dash.callback_context
-    if not ctx.triggered:
-        return update_song_list("all")
-
-    triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
-    index = int(triggered_id.split("-")[-1])
-
-    df.at[index, "favorite"] = not df.at[index, "favorite"]
-    return update_song_list("all")
 
 if __name__ == '__main__':
     app.run_server(debug=True)
