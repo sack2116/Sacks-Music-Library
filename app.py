@@ -149,12 +149,12 @@ app.layout = html.Div([
                 muted=True,
                 controls=False,
                 style={
-                    "width": "220px",
-                    "height": "220px",
+                    "width": "300px",
+                    "height": "300px",
                     "border-radius": "10px",
                     "position": "absolute",
-                    "top": "-10px",
-                    "right": "10px",
+                    "top": "-30px",
+                    "right": "20px",
                     "z-index": "5"
                 }
             )
