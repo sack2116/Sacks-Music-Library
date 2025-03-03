@@ -33,7 +33,7 @@ def load_songs(directory):
                     "artwork": artwork, 
                     "file_path": relative_path,
                     "lyrics": lyrics,
-                    "favorite": False
+                    "favorite": False  # Add favorite flag
                 })
     return pd.DataFrame(songs)
 
@@ -57,6 +57,7 @@ def load_lyrics(file_path):
     if os.path.exists(lyrics_file):
         with open(lyrics_file, "r", encoding="utf-8") as f:
             return f.read()
+    
     return "No Lyrics Available"
 
 # Format duration
@@ -74,110 +75,68 @@ def get_artwork_thumbnail(file_path):
             return f"data:image/jpeg;base64,{base64.b64encode(tag.data).decode()}"
     return os.path.join("assets", "default_artwork.jpg")
 
+# Load songs
 df = load_songs(MUSIC_DIR)
 
 # Initialize Dash app
 app = dash.Dash(__name__, external_stylesheets=["/assets/style.css"])
 server = app.server
 
+# Serve music files
+@app.server.route("/music/<path:song_path>")
+def serve_music(song_path):
+    full_path = os.path.abspath(os.path.join(BASE_DIR, song_path))
+    if os.path.exists(full_path):
+        return send_file(full_path, mimetype="audio/mpeg")
+    return "File Not Found", 404
+
 app.layout = html.Div([
-    html.H1("Isaac's Personal Music Library and Player", style={"text-align": "center"}),
-
-    # Filter Dropdown
-    dcc.Dropdown(
-        id="filter-dropdown",
-        options=[
-            {"label": "All Songs", "value": "all"},
-            {"label": "By Album", "value": "album"},
-            {"label": "Favorites", "value": "favorites"}
-        ],
-        value="all",
-        clearable=False,
-        style={"width": "50%", "margin": "auto"}
-    ),
-
-    # Songs & Lyrics Section
+    html.H1("Isaac's Personal Music Library and Player", className="main-title"),
+    
     html.Div([
         html.Div([
-            html.H3("Available Songs"),
+            html.H3("Available Songs", className="section-heading"),
             html.Div(id="songs-list", className="songs-list-container")
         ], className="song-list", style={"width": "45%"}),
-
+        
         html.Div([
-            html.H3("Lyrics"),
+            html.H3("Lyrics", className="section-heading"),
             html.Div(id="lyrics", className="lyrics-container")
         ], className="lyrics-container", style={"width": "45%"})
-    ], className="songs-lyrics-container", style={"display": "flex", "justify-content": "space-between", "width": "90%", "margin": "auto"}),
-
-    # Now Playing Section
+    ], className="songs-lyrics-container"),
+    
     html.Div([
-        html.H3("Now Playing"),
-        html.Video(
-            id="background-video",
-            src="/assets/Sacks.mp4",
-            autoPlay=True,
-            loop=True,
-            muted=True,
-            controls=False,
-            style={"width": "310px", "height": "270px", "border-radius": "10px", "position": "absolute", "top": "-60px", "right": "20px", "z-index": "5"}
-        ),
-        html.Img(id="now-playing-artwork", style={"width": "120px", "height": "120px", "margin-top": "20px", "border-radius": "10px", "display": "block"}),
-        html.H2(id="now-playing-title", style={"font-size": "20px", "color": "white", "text-align": "center"}),
-        html.P(id="now-playing-details", style={"color": "white", "text-align": "center"}),
-        html.Audio(id="audio-player", controls=True, autoPlay=True, style={"width": "100%", "height": "80px"})
-    ], className="music-player", style={"background": "black", "border": "2px solid white", "border-radius": "10px", "padding": "20px", "width": "90%", "margin": "20px auto"})
+        html.H3("Now Playing", className="section-heading"),
+        html.Img(id="now-playing-artwork", className="now-playing-artwork"),
+        html.H2(id="now-playing-title", className="now-playing-title"),
+        html.P(id="now-playing-details", className="now-playing-details"),
+        html.Audio(id="audio-player", controls=True, className="audio-player"),
+        html.Button("❤️", id="favorite-btn", className="favorite-button"),
+        html.Div([
+            html.Button("⏮️ Previous", id="prev-btn", className="control-button"),
+            html.Button("⏭️ Next", id="next-btn", className="control-button"),
+        ], className="player-controls")
+    ], className="music-player")
 ])
 
-# Callbacks
 @app.callback(
     Output("songs-list", "children"),
-    [Input("filter-dropdown", "value")]
+    Input("favorite-btn", "n_clicks")
 )
-def update_song_list(filter_value):
-    filtered_df = df
-    if filter_value == "favorites":
-        filtered_df = df[df["favorite"]]
-    elif filter_value == "album":
-        filtered_df = df.sort_values(by="album")
-
-    return [
-        html.Div([
-            html.Img(src=row['artwork'], className="song-artwork"),
-            html.Button(f"{row['title']} - {row['album']} ({row['duration']})", id=f"song-btn-{i}", n_clicks=0, className="song-button"),
-            html.Button("❤️", id=f"fav-btn-{i}", n_clicks=0, className="fav-button" if row["favorite"] else "unfav-button")
-        ], className="song-item")
-        for i, row in filtered_df.iterrows()
-    ]
-
-@app.callback(
-    Output("now-playing-title", "children"),
-    Output("now-playing-artwork", "src"),
-    Output("now-playing-details", "children"),
-    Output("audio-player", "src"),
-    Output("lyrics", "children"),
-    [Input(f"song-btn-{i}", "n_clicks") for i in range(len(df))]
-)
-def update_now_playing(*clicks):
-    ctx = dash.callback_context
-    if not ctx.triggered:
-        return "Select a Song", "/assets/default_artwork.jpg", "", "", "No Lyrics Available"
-
-    song_index = int(ctx.triggered[0]["prop_id"].split("-")[-1])
-    song = df.iloc[song_index]
-    song_url = f"/music/{song['file_path']}"
-
-    return song["title"], song["artwork"], f"Album: {song['album']} | Artist: {song['artist']} | Genre: {song['genre']} | Year: {song['year']}", song_url, song["lyrics"]
-
-@app.callback(
-    Output("songs-list", "children"),
-    [Input(f"fav-btn-{i}", "n_clicks") for i in range(len(df))]
-)
-def toggle_favorite(*clicks):
-    ctx = dash.callback_context
-    if ctx.triggered:
-        song_index = int(ctx.triggered[0]["prop_id"].split("-")[-1])
-        df.at[song_index, "favorite"] = not df.at[song_index, "favorite"]
-    return update_song_list("all")
+def update_favorites(n):
+    song_list = []
+    for i, row in df.iterrows():
+        song_list.append(
+            html.Div([
+                html.Img(src=row['artwork'], className="song-artwork"),
+                html.Button(
+                    f"{row['title']} - {row['album']} ({row['duration']})", 
+                    id=f"song-btn-{i}", className="song-button"
+                ),
+                html.Button("❤️", id=f"fav-btn-{i}", className="favorite-icon")
+            ], className="song-item")
+        )
+    return song_list
 
 if __name__ == '__main__':
     app.run_server(debug=True)
