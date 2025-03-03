@@ -151,7 +151,7 @@ app.layout = html.Div([
                     "height": "220px",
                     "border-radius": "10px",
                     "position": "absolute",
-                    "top": "10px",
+                    "top": "0px",
                     "right": "10px",
                     "z-index": "5"
                 }
