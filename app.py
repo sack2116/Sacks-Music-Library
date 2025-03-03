@@ -136,7 +136,9 @@ app.layout = html.Div([
 
     # Now Playing Section
     html.Div([
-        html.H3("Now Playing", style={"color": "white", "text-align": "center"}),
+        #html.H3("Now Playing", style={"color": "white", "text-align": "center"}),
+        html.H3("Now Playing", className="section-heading now-playing-button"),
+
 
         html.Div(style={"position": "relative", "width": "100%", "text-align": "right"}, children=[
             html.Video(
@@ -176,8 +178,11 @@ app.layout = html.Div([
         }),
 
         html.Div([
+            # html.Button("⏮️ Previous", id="prev-btn", className="control-button"),
+            # html.Button("⏭️ Next", id="next-btn", className="control-button"),
             html.Button("⏮️ Previous", id="prev-btn", className="control-button"),
             html.Button("⏭️ Next", id="next-btn", className="control-button"),
+
         ], style={"text-align": "center", "margin-top": "10px"})
 
     ], className="music-player", style={
