@@ -110,4 +110,33 @@ body {
     margin: 0 auto;
     white-space: pre-line; /* This preserves line breaks in lyrics */
 }
+.now-playing-button {
+    background-color: #40E0D0; /* Turquoise color like other buttons */
+    color: white;
+    padding: 10px 15px;
+    border-radius: 5px;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.3s;
+    font-weight: bold;
+}
+
+.now-playing-button:hover {
+    background-color: #2eb8b8; /* Slightly darker turquoise */
+}
+.control-button {
+    background-color: #40E0D0;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: 0.3s;
+}
+
+.control-button:hover {
+    background-color: #2eb8b8;
+    transform: scale(1.05); /* Slight zoom on hover */
+}
 
