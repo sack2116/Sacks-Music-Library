@@ -3,9 +3,9 @@ import base64
 import json  
 import pandas as pd
 import dash
-from dash import html, dcc, Output, Input
+from dash import html, dcc, Output, Input, State
 from mutagen.mp3 import MP3
-from mutagen.id3 import ID3, TIT2, TALB, TPE1, TCON, TYER, USLT, APIC
+from mutagen.id3 import ID3, TIT2, TALB, TPE1, TCON, TYER, APIC
 from flask import Flask, send_file
 import glob
 
@@ -33,7 +33,7 @@ def load_songs(directory):
         for file in files:
             if file.endswith(".mp3"):
                 file_path = os.path.join(root, file)
-                title, album, artist, genre, year, lyrics = extract_metadata(file_path)
+                title, album, artist, genre, year = extract_metadata(file_path)
                 duration = format_duration(file_path)
                 artwork = get_artwork_thumbnail(file_path)
                 relative_path = os.path.relpath(file_path, BASE_DIR)
@@ -48,7 +48,6 @@ def load_songs(directory):
                     "duration": duration, 
                     "artwork": artwork, 
                     "file_path": relative_path,
-                    "lyrics": lyrics,
                     "is_favorite": file_path in favorites  
                 })
     
@@ -64,9 +63,8 @@ def extract_metadata(file_path):
     
     year_tag = audio.tags.get("TYER") or audio.tags.get("TDRC")
     year = year_tag.text[0] if year_tag else "Unknown Year"
-    lyrics = load_lyrics(file_path)
 
-    return title, album, artist, genre, year, lyrics
+    return title, album, artist, genre, year
 
 # Load lyrics
 def load_lyrics(file_path):
@@ -107,23 +105,36 @@ def serve_music(song_path):
         return send_file(full_path, mimetype="audio/mpeg")
     return "File Not Found", 404
 
-# UI Layout
+# Layout
 app.layout = html.Div([
-    html.H1("Isaac's Personal Music Library and Player", className="title"),
+    html.H1("Isaac's Personal Music Library and Player", style={"text-align": "center"}),
 
     # Dropdown Filter
     dcc.Dropdown(
-        id="filter-dropdown",
+        id="song-filter",
         options=[
             {"label": "All Songs", "value": "all"},
             {"label": "By Album", "value": "album"},
             {"label": "Favorites", "value": "favorites"}
         ],
         value="all",
-        className="dropdown"
+        clearable=False,
+        style={"width": "40%", "margin": "10px auto"}
     ),
 
-    html.Div(id="songs-list", className="songs-list-container"),  
+    # Songs & Lyrics Section
+    html.Div([
+        html.Div([
+            html.H3("Available Songs", className="section-heading"),
+            html.Div(id="songs-list", className="songs-list-container")
+        ], className="song-list", style={"width": "45%"}),
+
+        html.Div([
+            html.H3("Lyrics", className="section-heading"),
+            html.Div(id="lyrics", className="lyrics-container")
+        ], className="lyrics-container", style={"width": "45%"}),
+
+    ], className="songs-lyrics-container", style={"display": "flex", "justify-content": "space-between", "width": "90%", "margin": "auto"}),
 
     # Now Playing Section
     html.Div([
@@ -150,35 +161,29 @@ app.layout = html.Div([
         ]),
 
         html.Img(id="now-playing-artwork", className="now-playing-artwork"),
-        html.H2(id="now-playing-title", className="now-playing-title"),
-        html.P(id="now-playing-details", className="now-playing-details"),
-
+        html.H2(id="now-playing-title"),
+        html.P(id="now-playing-details"),
+        
         html.Div([
-            html.Audio(id="audio-player", controls=True, autoPlay=True, style={
-                "width": "100%", "height": "80px",
-                "border": "2px solid #40E0D0",
-                "border-radius": "5px",
-                "padding": "10px",
-                "margin-top": "10px"
-            })
-        ]),
+            html.Audio(id="audio-player", controls=True, autoPlay=True, style={"width": "100%", "height": "80px"})
+        ], style={
+            "border": "2px solid #40E0D0",
+            "border-radius": "5px",
+            "padding": "10px",
+            "width": "100%",
+            "margin-top": "10px"
+        }),
 
         html.Div([
             html.Button("⏮️ Previous", id="prev-btn", className="control-button"),
+            html.Button("❤️", id="fav-now-btn", n_clicks=0, className="control-button"),
             html.Button("⏭️ Next", id="next-btn", className="control-button"),
-            html.Button("❤️", id="fav-btn-now-playing", n_clicks=0, className="control-button"),
         ], style={"text-align": "center", "margin-top": "10px"}),
 
     ], className="music-player"),
-
-    # Favorites List
-    html.Div([
-        html.H3("❤️ Favorite Songs", className="section-heading"),
-        html.Ul(id="favorites-list", className="favorites-container")
-    ])
 ])
 
-# Callbacks
+# Callbacks for song selection and lyrics update
 @app.callback(
     [Output("now-playing-title", "children"),
      Output("now-playing-artwork", "src"),
@@ -194,21 +199,16 @@ def update_now_playing(*clicks):
     ctx = dash.callback_context
 
     if not ctx.triggered:
-        return "Select a Song", "/assets/default_artwork.jpg", "", "", "No Lyrics Available"
+        return "Select a Song", "", "", "", "No Lyrics Available"
 
     triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
     if "song-btn" in triggered_id:
         current_song_index = int(triggered_id.split("-")[-1])
-    elif triggered_id == "prev-btn":
-        current_song_index = (current_song_index - 1) % len(df)
-    elif triggered_id == "next-btn":
-        current_song_index = (current_song_index + 1) % len(df)
 
     song = df.iloc[current_song_index]
-    song_url = f"/music/{song['file_path']}"
+    return (song["title"], song["artwork"], f"Album: {song['album']} | Artist: {song['artist']} | Year: {song['year']} | Length: {song['duration']}", f"/music/{song['file_path']}", song["lyrics"])
 
-    return (song["title"], song["artwork"], f"Album: {song['album']} | Artist: {song['artist']} | Genre: {song['genre']} | Year: {song['year']}", song_url, song["lyrics"])
-
+# Run App
 if __name__ == '__main__':
     app.run_server(debug=True)
