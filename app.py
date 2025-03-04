@@ -1,6 +1,6 @@
 import os
 import base64
-import json  
+import json
 import pandas as pd
 import dash
 from dash import html, dcc, Output, Input, State
@@ -12,7 +12,7 @@ import glob
 # Define directories
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MUSIC_DIR = os.path.join(BASE_DIR, "MusicAlbums")
-FAVORITES_FILE = os.path.join(BASE_DIR, "favorites.json")  
+FAVORITES_FILE = os.path.join(BASE_DIR, "favorites.json")
 
 # Load favorite songs
 def load_favorites():
@@ -33,7 +33,7 @@ def load_songs(directory):
         for file in files:
             if file.endswith(".mp3"):
                 file_path = os.path.join(root, file)
-                title, album, artist, genre, year = extract_metadata(file_path)
+                title, album, artist, genre, year, lyrics = extract_metadata(file_path)
                 duration = format_duration(file_path)
                 artwork = get_artwork_thumbnail(file_path)
                 relative_path = os.path.relpath(file_path, BASE_DIR)
@@ -48,6 +48,7 @@ def load_songs(directory):
                     "duration": duration, 
                     "artwork": artwork, 
                     "file_path": relative_path,
+                    "lyrics": lyrics,
                     "is_favorite": file_path in favorites  
                 })
     
@@ -63,8 +64,9 @@ def extract_metadata(file_path):
     
     year_tag = audio.tags.get("TYER") or audio.tags.get("TDRC")
     year = year_tag.text[0] if year_tag else "Unknown Year"
+    lyrics = load_lyrics(file_path)
 
-    return title, album, artist, genre, year
+    return title, album, artist, genre, year, lyrics
 
 # Load lyrics
 def load_lyrics(file_path):
@@ -105,18 +107,20 @@ def serve_music(song_path):
         return send_file(full_path, mimetype="audio/mpeg")
     return "File Not Found", 404
 
-# Layout
+# Dropdown filter options
+filter_options = [
+    {"label": "All Songs", "value": "all"},
+    {"label": "By Album", "value": "album"},
+    {"label": "Favorites", "value": "favorites"}
+]
+
 app.layout = html.Div([
     html.H1("Isaac's Personal Music Library and Player", style={"text-align": "center"}),
 
     # Dropdown Filter
     dcc.Dropdown(
         id="song-filter",
-        options=[
-            {"label": "All Songs", "value": "all"},
-            {"label": "By Album", "value": "album"},
-            {"label": "Favorites", "value": "favorites"}
-        ],
+        options=filter_options,
         value="all",
         clearable=False,
         style={"width": "40%", "margin": "10px auto"}
@@ -139,27 +143,6 @@ app.layout = html.Div([
     # Now Playing Section
     html.Div([
         html.H3("Now Playing", className="section-heading now-playing-button"),
-
-        html.Div(style={"position": "relative", "width": "100%", "text-align": "right"}, children=[
-            html.Video(
-                id="background-video",
-                src="/assets/Sacks.mp4",
-                autoPlay=True,
-                loop=True,
-                muted=True,
-                controls=False,
-                style={
-                    "width": "310px",
-                    "height": "270px",
-                    "border-radius": "10px",
-                    "position": "absolute",
-                    "top": "-60px",
-                    "right": "20px",
-                    "z-index": "5"
-                }
-            )
-        ]),
-
         html.Img(id="now-playing-artwork", className="now-playing-artwork"),
         html.H2(id="now-playing-title"),
         html.P(id="now-playing-details"),
@@ -183,7 +166,37 @@ app.layout = html.Div([
     ], className="music-player"),
 ])
 
-# Callbacks for song selection and lyrics update
+# Callbacks
+@app.callback(
+    Output("songs-list", "children"),
+    Input("song-filter", "value")
+)
+def update_song_list(filter_value):
+    if filter_value == "favorites":
+        filtered_df = df[df["is_favorite"]]
+    elif filter_value == "album":
+        filtered_df = df.sort_values("album")
+    else:
+        filtered_df = df
+    return [
+        html.Div([
+            html.Img(src=row['artwork'], className="song-artwork"),
+            html.Button(
+                f"{row['title']} - {row['album']} ({row['duration']})",
+                id=f"song-btn-{i}",
+                n_clicks=0,
+                className="song-button"
+            ),
+            html.Button(
+                "❤️" if row["is_favorite"] else "♡",
+                id=f"fav-btn-{i}",
+                n_clicks=0,
+                className="favorite-button"
+            )
+        ], className="song-item")
+        for i, row in filtered_df.iterrows()
+    ]
+
 @app.callback(
     [Output("now-playing-title", "children"),
      Output("now-playing-artwork", "src"),
@@ -209,6 +222,5 @@ def update_now_playing(*clicks):
     song = df.iloc[current_song_index]
     return (song["title"], song["artwork"], f"Album: {song['album']} | Artist: {song['artist']} | Year: {song['year']} | Length: {song['duration']}", f"/music/{song['file_path']}", song["lyrics"])
 
-# Run App
 if __name__ == '__main__':
     app.run_server(debug=True)
