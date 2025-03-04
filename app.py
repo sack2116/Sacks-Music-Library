@@ -1,9 +1,9 @@
 import os
 import base64
-import json  # Used to store favorite songs
+import json  
 import pandas as pd
 import dash
-from dash import html, dcc, Output, Input, State
+from dash import html, dcc, Output, Input
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, TIT2, TALB, TPE1, TCON, TYER, APIC
 from flask import Flask, send_file
@@ -12,13 +12,13 @@ import glob
 # Define the root music directory
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MUSIC_DIR = os.path.join(BASE_DIR, "MusicAlbums")
-FAVORITES_FILE = os.path.join(BASE_DIR, "favorites.json")  # Store favorite songs
+FAVORITES_FILE = os.path.join(BASE_DIR, "favorites.json")  
 
 # Load favorite songs from JSON file
 def load_favorites():
     if os.path.exists(FAVORITES_FILE):
         with open(FAVORITES_FILE, "r") as f:
-            return set(json.load(f))  # Store as a set for quick lookup
+            return set(json.load(f))  
     return set()
 
 # Save favorite songs to JSON file
@@ -49,6 +49,7 @@ def load_songs(directory):
                     "duration": duration, 
                     "artwork": artwork, 
                     "file_path": relative_path,
+                    "lyrics": load_lyrics(file_path),  
                     "is_favorite": file_path in favorites  
                 })
     
@@ -66,6 +67,14 @@ def extract_metadata(file_path):
     year = year_tag.text[0] if year_tag else "Unknown Year"
 
     return title, album, artist, genre, year
+
+# Load lyrics
+def load_lyrics(file_path):
+    lyrics_file = os.path.splitext(file_path)[0] + ".txt"
+    if os.path.exists(lyrics_file):
+        with open(lyrics_file, "r", encoding="utf-8") as f:
+            return f.read()
+    return "No Lyrics Available"
 
 # Format duration
 def format_duration(file_path):
@@ -157,17 +166,28 @@ app.layout = html.Div([
         "margin": "auto"
     }),
 
-    # Now Playing Section
+    # Now Playing Section (Restored Structure)
     html.Div([
-        html.H3("Now Playing", className="section-heading now-playing-button"),
+        html.Button("Now Playing", className="section-heading now-playing-button"),  
         html.Img(id="now-playing-artwork", style={"width": "120px", "height": "120px", "border-radius": "10px"}),
         html.H2(id="now-playing-title"),
         html.P(id="now-playing-details"),
         html.Audio(id="audio-player", controls=True, autoPlay=True),
-        html.Button("❤️", id="fav-now-btn", n_clicks=0),
-        html.Button("⏮️ Previous", id="prev-btn"),
-        html.Button("⏭️ Next", id="next-btn"),
-    ], className="music-player")
+        html.Div([
+            html.Button("⏮️ Previous", id="prev-btn", className="control-button"),
+            html.Button("⏭️ Next", id="next-btn", className="control-button"),
+        ], style={"text-align": "center", "margin-top": "10px"}),
+    ], className="music-player", style={
+        "background": "black",
+        "border": "2px solid white",
+        "border-radius": "10px",
+        "padding": "20px",
+        "display": "flex",
+        "flex-direction": "column",
+        "align-items": "center",
+        "width": "90%",
+        "margin": "20px auto"
+    })
 ])
 
 # Callbacks
@@ -188,29 +208,17 @@ def update_song_list(filter_value):
     [Output("now-playing-title", "children"),
      Output("now-playing-artwork", "src"),
      Output("now-playing-details", "children"),
-     Output("audio-player", "src")],
-    [Input(f"song-btn-{i}", "n_clicks") for i in range(len(df))] +
-    [Input("prev-btn", "n_clicks"), Input("next-btn", "n_clicks")],
+     Output("audio-player", "src"),
+     Output("lyrics", "children")],
+    [Input(f"song-btn-{i}", "n_clicks") for i in range(len(df))],
     prevent_initial_call=True
 )
 def update_now_playing(*clicks):
-    global current_song_index
     ctx = dash.callback_context
-
-    if not ctx.triggered:
-        return "Select a Song", "", "", ""
-
     triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
-
-    if "song-btn" in triggered_id:
-        current_song_index = int(triggered_id.split("-")[-1])
-    elif triggered_id == "prev-btn":
-        current_song_index = (current_song_index - 1) % len(df)
-    elif triggered_id == "next-btn":
-        current_song_index = (current_song_index + 1) % len(df)
-
-    song = df.iloc[current_song_index]
-    return song["title"], song["artwork"], f"Album: {song['album']} | Artist: {song['artist']} | Year: {song['year']} | Length: {song['duration']}", f"/music/{song['file_path']}"
+    index = int(triggered_id.split("-")[-1])
+    song = df.iloc[index]
+    return song["title"], song["artwork"], f"{song['album']} | {song['artist']} | {song['year']} | {song['duration']}", f"/music/{song['file_path']}", song["lyrics"]
 
 if __name__ == '__main__':
     app.run_server(debug=True)
