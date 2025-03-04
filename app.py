@@ -144,33 +144,44 @@ app.layout = html.Div([
         "margin": "auto"
     }),
 
-    # Now Playing Section (Updated Styling)
+  # Now Playing Section (Updated Styling)
+html.Div([
+    html.H3("Now Playing", className="section-heading now-playing-button"),
+    
+    html.Img(id="now-playing-artwork", style={"width": "120px", "height": "120px", "border-radius": "10px"}),
+    html.H2(id="now-playing-title"),
+    html.P(id="now-playing-details"),
+    
+    # Updated Audio Player (90% width)
     html.Div([
-        html.H3("Now Playing", className="section-heading now-playing-button"),
-        
-        html.Img(id="now-playing-artwork", style={"width": "120px", "height": "120px", "border-radius": "10px"}),
-        html.H2(id="now-playing-title"),
-        html.P(id="now-playing-details"),
-        html.Audio(id="audio-player", controls=True, autoPlay=True),
+        html.Audio(id="audio-player", controls=True, autoPlay=True, style={"width": "90%", "height": "80px"})
+    ], style={
+        "border": "2px solid #40E0D0",
+        "border-radius": "5px",
+        "padding": "10px",
+        "width": "90%",  # ✅ Updated width
+        "margin-top": "10px"
+    }),
 
-        html.Div([
-            html.Button("⏮️ Previous", id="prev-btn", className="control-button"),
-            html.Button("⏭️ Next", id="next-btn", className="control-button"),
-        ], style={"text-align": "center", "margin-top": "10px"}),
+    # Music Controls
+    html.Div([
+        html.Button("⏮️ Previous", id="prev-btn", className="control-button"),
+        html.Button("⏭️ Next", id="next-btn", className="control-button"),
+    ], style={"text-align": "center", "margin-top": "10px"}),
 
-    ], className="music-player", style={
-        "background": "black",
-        "border": "2px solid white",
-        "border-radius": "10px",
-        "padding": "20px",
-        "position": "relative",
-        "display": "flex",
-        "flex-direction": "column",
-        "align-items": "center",
-        "width": "90%",  # ✅ Match the width of `songs-lyrics-container`
-        "margin": "20px auto"
-    })
-])
+], className="music-player", style={
+    "background": "black",
+    "border": "2px solid white",
+    "border-radius": "10px",
+    "padding": "20px",
+    "position": "relative",
+    "display": "flex",
+    "flex-direction": "column",
+    "align-items": "center",
+    "width": "90%",  # ✅ Music player container width
+    "margin": "20px auto"
+})
+
 
 # Callbacks
 @app.callback(
