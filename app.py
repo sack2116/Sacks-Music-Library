@@ -74,6 +74,7 @@ def load_lyrics(file_path):
     if os.path.exists(lyrics_file):
         with open(lyrics_file, "r", encoding="utf-8") as f:
             return f.read()
+    
     return "No Lyrics Available"
 
 # Format duration
@@ -126,7 +127,7 @@ def create_song_list(filtered_df):
                 className="song-button"
             ),
             html.Button(
-                "❤️" if row["is_favorite"] else "♡",
+                "💙" if row["is_favorite"] else "❤️",
                 id=f"fav-btn-{i}",
                 n_clicks=0,
                 className="favorite-button"
@@ -175,31 +176,34 @@ app.layout = html.Div([
         html.H2(id="now-playing-title"),
         html.P(id="now-playing-details"),
         html.Audio(id="audio-player", controls=True, autoPlay=True),
-        html.Button("❤️", id="fav-now-btn", n_clicks=0),
-        html.Button("⏮️ Previous", id="prev-btn"),
-        html.Button("⏭️ Next", id="next-btn"),
-    ], className="music-player")
+
+        html.Div([
+            html.Button("⏮️ Previous", id="prev-btn", className="control-button"),
+            html.Button("💙", id="fav-now-btn", n_clicks=0, className="control-button"),
+            html.Button("⏭️ Next", id="next-btn", className="control-button"),
+        ], style={"text-align": "center", "margin-top": "10px"}),
+
+    ], className="music-player", style={
+        "background": "black",
+        "border": "2px solid white",
+        "border-radius": "10px",
+        "padding": "20px",
+        "position": "relative",
+        "display": "flex",
+        "flex-direction": "column",
+        "align-items": "center",
+        "width": "90%",
+        "margin": "20px auto"
+    })
 ])
 
 # Callbacks
 @app.callback(
-    Output("songs-list", "children"),
-    Input("song-filter", "value")
-)
-def update_song_list(filter_value):
-    if filter_value == "favorites":
-        filtered_df = df[df["is_favorite"]]
-    elif filter_value == "album":
-        filtered_df = df.sort_values("album")
-    else:
-        filtered_df = df
-    return create_song_list(filtered_df)
-
-@app.callback(
     [Output("now-playing-title", "children"),
      Output("now-playing-artwork", "src"),
      Output("now-playing-details", "children"),
-     Output("audio-player", "src")],
+     Output("audio-player", "src"),
+     Output("lyrics", "children")],
     [Input(f"song-btn-{i}", "n_clicks") for i in range(len(df))] +
     [Input("prev-btn", "n_clicks"), Input("next-btn", "n_clicks")],
     prevent_initial_call=True
@@ -209,7 +213,7 @@ def update_now_playing(*clicks):
     ctx = dash.callback_context
 
     if not ctx.triggered:
-        return "Select a Song", "", "", ""
+        return "Select a Song", "/assets/default_artwork.jpg", "", "", "No Lyrics Available"
 
     triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
@@ -221,7 +225,7 @@ def update_now_playing(*clicks):
         current_song_index = (current_song_index + 1) % len(df)
 
     song = df.iloc[current_song_index]
-    return song["title"], song["artwork"], f"Album: {song['album']} | Artist: {song['artist']} | Year: {song['year']} | Length: {song['duration']}", f"/music/{song['file_path']}"
+    return song["title"], song["artwork"], f"Album: {song['album']} | Artist: {song['artist']} | Year: {song['year']} | Length: {song['duration']}", f"/music/{song['file_path']}", song["lyrics"]
 
 if __name__ == '__main__':
     app.run_server(debug=True)
