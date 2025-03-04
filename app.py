@@ -28,20 +28,22 @@ def save_favorites(favorites):
 # Load song metadata
 def load_songs(directory):
     songs = []
-    print(f"Scanning directory: {directory}")  # Debugging
+    favorites = load_favorites()
+    print(f"Scanning directory: {directory}")
 
     for root, _, files in os.walk(directory):  
         for file in files:
             if file.endswith(".mp3"):
                 file_path = os.path.join(root, file)
-                print(f"Found MP3: {file_path}")  # Debugging
-                
+                print(f"Found MP3: {file_path}")
+
                 title, album, artist, genre, year, lyrics = extract_metadata(file_path)
                 duration = format_duration(file_path)
                 artwork = get_artwork_thumbnail(file_path)
                 relative_path = os.path.relpath(file_path, BASE_DIR)
                 
                 songs.append({
+                    "id": file_path,  
                     "title": title, 
                     "album": album, 
                     "artist": artist,
@@ -50,12 +52,17 @@ def load_songs(directory):
                     "duration": duration, 
                     "artwork": artwork, 
                     "file_path": relative_path,
-                    "lyrics": lyrics
+                    "lyrics": lyrics,
+                    "is_favorite": file_path in favorites  
                 })
     
-    print(f"Total songs loaded: {len(songs)}")  # Debugging
-    return pd.DataFrame(songs)
-
+    df = pd.DataFrame(songs)
+    print(f"Total songs loaded: {len(df)}")
+    
+    if df.empty:
+        raise Exception("Songs were detected, but DataFrame is empty. Check the processing.")
+    
+    return df
 
 # Extract metadata
 def extract_metadata(file_path):
@@ -71,7 +78,7 @@ def extract_metadata(file_path):
 
     return title, album, artist, genre, year, lyrics
 
-# Load lyrics (Fixed!)
+# Load lyrics
 def load_lyrics(file_path):
     lyrics_file = os.path.splitext(file_path)[0] + ".txt"
     if os.path.exists(lyrics_file):
@@ -108,6 +115,7 @@ df = load_songs(MUSIC_DIR)
 # Initialize Dash app
 app = dash.Dash(__name__, external_stylesheets=["/assets/style.css"])
 server = app.server
+app.css.config.serve_locally = True  
 
 # Serve music files
 @app.server.route("/music/<path:song_path>")
@@ -117,59 +125,42 @@ def serve_music(song_path):
         return send_file(full_path, mimetype="audio/mpeg")
     return "File Not Found", 404
 
-# Dropdown filter options
-filter_options = [
-    {"label": "All Songs", "value": "all"},
-    {"label": "By Album", "value": "album"},
-    {"label": "Favorites", "value": "favorites"}
-]
+# Generate song list dynamically
+def create_song_list(filtered_df):
+    return [
+        html.Div([
+            html.Img(src=row['artwork'], className="song-artwork"),
+            html.Button(
+                f"{row['title']} - {row['album']} ({row['duration']})",
+                id=f"song-btn-{i}",
+                n_clicks=0,
+                className="song-button"
+            )
+        ], className="song-item")
+        for i, row in filtered_df.iterrows()
+    ]
 
+song_list = create_song_list(df)
+
+# Layout
 app.layout = html.Div([
     html.H1("Isaac's Personal Music Library and Player", style={"text-align": "center"}),
 
-    # Dropdown Filter
-    dcc.Dropdown(
-        id="song-filter",
-        options=filter_options,
-        value="all",
-        clearable=False,
-        style={"width": "40%", "margin": "10px auto"}
-    ),
-
-    # Songs & Lyrics Section
     html.Div([
-        html.Div([
-            html.H3("Available Songs", className="section-heading"),
-            html.Div(id="songs-list", className="songs-list-container")
-        ], className="song-list", style={"width": "45%"}),
+        html.H3("Available Songs", className="section-heading"),
+        html.Div(song_list, id="songs-list", className="songs-list-container")
+    ], className="song-list", style={"width": "45%"}), 
 
-        html.Div([
-            html.H3("Lyrics", className="section-heading"),
-            html.Div(id="lyrics", className="lyrics-container")
-        ], className="lyrics-container", style={"width": "45%"})
-    ], className="songs-lyrics-container", style={
-        "display": "flex",
-        "justify-content": "space-between",
-        "width": "90%",
-        "margin": "auto"
-    }),
-
-    # Now Playing Section
     html.Div([
-        html.H3("Now Playing", className="section-heading now-playing-button"),
-        html.Img(id="now-playing-artwork", style={"width": "120px", "height": "120px", "border-radius": "10px"}),
-        html.H2(id="now-playing-title"),
-        html.P(id="now-playing-details"),
-        html.Audio(id="audio-player", controls=True, autoPlay=True),
-
-        # Music Controls
-        html.Div([
-            html.Button("⏮️ Previous", id="prev-btn", className="control-button"),
-            html.Button("💙", id="fav-now-btn", className="control-button"),
-            html.Button("⏭️ Next", id="next-btn", className="control-button"),
-        ], style={"text-align": "center", "margin-top": "10px"}),
-    ], className="music-player", style={"width": "90%", "margin": "20px auto"})
-])
+        html.H3("Lyrics", className="section-heading"),
+        html.Div(id="lyrics", className="lyrics-container")
+    ], className="lyrics-container", style={"width": "45%"}),  
+], className="songs-lyrics-container", style={
+    "display": "flex",
+    "justify-content": "space-between",
+    "width": "90%",  
+    "margin": "auto"
+})
 
 # Callbacks
 @app.callback(
@@ -177,9 +168,8 @@ app.layout = html.Div([
      Output("now-playing-artwork", "src"),
      Output("now-playing-details", "children"),
      Output("audio-player", "src"),
-     Output("lyrics", "children")],  
-    [Input(f"song-btn-{i}", "n_clicks") for i in range(len(df))] +
-    [Input("prev-btn", "n_clicks"), Input("next-btn", "n_clicks")],
+     Output("lyrics", "children")],
+    [Input(f"song-btn-{i}", "n_clicks") for i in range(len(df))],
     prevent_initial_call=True
 )
 def update_now_playing(*clicks):
@@ -193,13 +183,15 @@ def update_now_playing(*clicks):
 
     if "song-btn" in triggered_id:
         current_song_index = int(triggered_id.split("-")[-1])
-    elif triggered_id == "prev-btn":
-        current_song_index = (current_song_index - 1) % len(df)
-    elif triggered_id == "next-btn":
-        current_song_index = (current_song_index + 1) % len(df)
 
     song = df.iloc[current_song_index]
-    return song["title"], song["artwork"], f"Album: {song['album']} | Artist: {song['artist']} | Year: {song['year']} | Length: {song['duration']}", f"/music/{song['file_path']}", song["lyrics"]
+    song_url = f"/music/{song['file_path']}"
+    
+    return (song["title"], 
+            song["artwork"], 
+            f"Album: {song['album']} | Artist: {song['artist']} | Year: {song['year']} | Length: {song['duration']}",
+            song_url,
+            song["lyrics"])
 
 if __name__ == '__main__':
     app.run_server(debug=True)
