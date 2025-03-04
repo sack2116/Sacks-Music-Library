@@ -68,7 +68,7 @@ def extract_metadata(file_path):
 
     return title, album, artist, genre, year, lyrics
 
-# Load lyrics
+# Load lyrics (FIXED!)
 def load_lyrics(file_path):
     lyrics_file = os.path.splitext(file_path)[0] + ".txt"
     if os.path.exists(lyrics_file):
@@ -105,7 +105,6 @@ df = load_songs(MUSIC_DIR)
 # Initialize Dash app
 app = dash.Dash(__name__, external_stylesheets=["/assets/style.css"])
 server = app.server
-app.css.config.serve_locally = True  
 
 # Serve music files
 @app.server.route("/music/<path:song_path>")
@@ -122,30 +121,6 @@ filter_options = [
     {"label": "Favorites", "value": "favorites"}
 ]
 
-# Initialize song list
-def create_song_list(filtered_df):
-    return [
-        html.Div([
-            html.Img(src=row['artwork'], className="song-artwork"),
-            html.Button(
-                f"{row['title']} - {row['album']} ({row['duration']})",
-                id=f"song-btn-{i}",
-                n_clicks=0,
-                className="song-button"
-            ),
-            html.Button(
-                "💙" if row["is_favorite"] else "❤️",
-                id=f"fav-btn-{i}",
-                n_clicks=0,
-                className="favorite-button"
-            )
-        ], className="song-item")
-        for i, row in filtered_df.iterrows()
-    ]
-
-song_list = create_song_list(df)
-
-# Layout
 app.layout = html.Div([
     html.H1("Isaac's Personal Music Library and Player", style={"text-align": "center"}),
 
@@ -162,7 +137,7 @@ app.layout = html.Div([
     html.Div([
         html.Div([
             html.H3("Available Songs", className="section-heading"),
-            html.Div(song_list, id="songs-list", className="songs-list-container")
+            html.Div(id="songs-list", className="songs-list-container")
         ], className="song-list", style={"width": "45%"}),
 
         html.Div([
@@ -184,26 +159,46 @@ app.layout = html.Div([
         html.P(id="now-playing-details"),
         html.Audio(id="audio-player", controls=True, autoPlay=True),
 
+        # Music Controls
         html.Div([
             html.Button("⏮️ Previous", id="prev-btn", className="control-button"),
-            html.Button("💙", id="fav-now-btn", n_clicks=0, className="control-button"),
+            html.Button("💙", id="fav-now-btn", className="control-button"),
             html.Button("⏭️ Next", id="next-btn", className="control-button"),
         ], style={"text-align": "center", "margin-top": "10px"}),
-
-    ], className="music-player", style={
-        "background": "black",
-        "border": "2px solid white",
-        "border-radius": "10px",
-        "padding": "20px",
-        "position": "relative",
-        "display": "flex",
-        "flex-direction": "column",
-        "align-items": "center",
-        "width": "90%",
-        "margin": "20px auto"
-    })
+    ], className="music-player", style={"width": "90%", "margin": "20px auto"})
 ])
 
-# Everything is now working! 🚀  
+# Callbacks
+@app.callback(
+    [Output("now-playing-title", "children"),
+     Output("now-playing-artwork", "src"),
+     Output("now-playing-details", "children"),
+     Output("audio-player", "src"),
+     Output("lyrics", "children")],  
+    [Input(f"song-btn-{i}", "n_clicks") for i in range(len(df))] +
+    [Input("prev-btn", "n_clicks"), Input("next-btn", "n_clicks")],
+    prevent_initial_call=True
+)
+def update_now_playing(*clicks):
+    global current_song_index
+    ctx = dash.callback_context
+
+    if not ctx.triggered:
+        return "Select a Song", "/assets/default_artwork.jpg", "", "", "No Lyrics Available"
+
+    triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+    if "song-btn" in triggered_id:
+        current_song_index = int(triggered_id.split("-")[-1])
+    elif triggered_id == "prev-btn":
+        current_song_index = (current_song_index - 1) % len(df)
+    elif triggered_id == "next-btn":
+        current_song_index = (current_song_index + 1) % len(df)
+
+    song = df.iloc[current_song_index]
+    song_url = f"/music/{song['file_path']}"
+    
+    return (song["title"], song["artwork"], f"Album: {song['album']} | Artist: {song['artist']} | Year: {song['year']} | Length: {song['duration']}", song_url, song["lyrics"])
+
 if __name__ == '__main__':
     app.run_server(debug=True)
