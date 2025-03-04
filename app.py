@@ -28,18 +28,20 @@ def save_favorites(favorites):
 # Load song metadata
 def load_songs(directory):
     songs = []
-    favorites = load_favorites()
+    print(f"Scanning directory: {directory}")  # Debugging
+
     for root, _, files in os.walk(directory):  
         for file in files:
             if file.endswith(".mp3"):
                 file_path = os.path.join(root, file)
+                print(f"Found MP3: {file_path}")  # Debugging
+                
                 title, album, artist, genre, year, lyrics = extract_metadata(file_path)
                 duration = format_duration(file_path)
                 artwork = get_artwork_thumbnail(file_path)
                 relative_path = os.path.relpath(file_path, BASE_DIR)
                 
                 songs.append({
-                    "id": file_path,  
                     "title": title, 
                     "album": album, 
                     "artist": artist,
@@ -48,11 +50,12 @@ def load_songs(directory):
                     "duration": duration, 
                     "artwork": artwork, 
                     "file_path": relative_path,
-                    "lyrics": lyrics,
-                    "is_favorite": file_path in favorites  
+                    "lyrics": lyrics
                 })
     
+    print(f"Total songs loaded: {len(songs)}")  # Debugging
     return pd.DataFrame(songs)
+
 
 # Extract metadata
 def extract_metadata(file_path):
