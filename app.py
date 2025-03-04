@@ -144,7 +144,7 @@ app.layout = html.Div([
         "margin": "auto"
     }),
 
-    # Now Playing Section
+    # Now Playing Section (Updated Styling)
     html.Div([
         html.H3("Now Playing", className="section-heading now-playing-button"),
         
@@ -158,7 +158,18 @@ app.layout = html.Div([
             html.Button("⏭️ Next", id="next-btn", className="control-button"),
         ], style={"text-align": "center", "margin-top": "10px"}),
 
-    ], className="music-player", style={"width": "90%", "margin": "20px auto"})
+    ], className="music-player", style={
+        "background": "black",
+        "border": "2px solid white",
+        "border-radius": "10px",
+        "padding": "20px",
+        "position": "relative",
+        "display": "flex",
+        "flex-direction": "column",
+        "align-items": "center",
+        "width": "90%",  # ✅ Match the width of `songs-lyrics-container`
+        "margin": "20px auto"
+    })
 ])
 
 # Callbacks
