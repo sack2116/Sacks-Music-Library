@@ -68,7 +68,7 @@ def extract_metadata(file_path):
 
     return title, album, artist, genre, year, lyrics
 
-# Load lyrics (FIXED!)
+# Load lyrics (Fixed!)
 def load_lyrics(file_path):
     lyrics_file = os.path.splitext(file_path)[0] + ".txt"
     if os.path.exists(lyrics_file):
@@ -196,9 +196,7 @@ def update_now_playing(*clicks):
         current_song_index = (current_song_index + 1) % len(df)
 
     song = df.iloc[current_song_index]
-    song_url = f"/music/{song['file_path']}"
-    
-    return (song["title"], song["artwork"], f"Album: {song['album']} | Artist: {song['artist']} | Year: {song['year']} | Length: {song['duration']}", song_url, song["lyrics"])
+    return song["title"], song["artwork"], f"Album: {song['album']} | Artist: {song['artist']} | Year: {song['year']} | Length: {song['duration']}", f"/music/{song['file_path']}", song["lyrics"]
 
 if __name__ == '__main__':
     app.run_server(debug=True)
