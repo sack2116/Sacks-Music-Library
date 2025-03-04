@@ -154,20 +154,12 @@ app.layout = html.Div([
         html.H2(id="now-playing-title", className="now-playing-title"),
         html.P(id="now-playing-details", className="now-playing-details"),
 
-        html.Div([
-            html.Audio(id="audio-player", controls=True, autoPlay=True, style={
-                "width": "100%", "height": "80px",
-                "border": "2px solid #40E0D0",
-                "border-radius": "5px",
-                "padding": "10px",
-                "margin-top": "10px"
-            })
-        ]),
+        html.Audio(id="audio-player", controls=True, autoPlay=True, className="audio-player"),
 
         html.Div([
             html.Button("⏮️ Previous", id="prev-btn", className="control-button"),
             html.Button("⏭️ Next", id="next-btn", className="control-button"),
-            html.Button("❤️", id="fav-btn-now-playing", n_clicks=0, className="control-button"),
+            html.Button("🔶", id="fav-btn-now-playing", n_clicks=0, className="control-button"),
         ], style={"text-align": "center", "margin-top": "10px"}),
 
     ], className="music-player"),
@@ -214,6 +206,27 @@ def update_now_playing(*clicks):
             f"Album: {song['album']} | Artist: {song['artist']} | Genre: {song['genre']} | Year: {song['year']} | Duration: {song['duration']}",
             song_url,
             song["lyrics"])
+
+@app.callback(
+    [Output("fav-btn-now-playing", "children"),
+     Output("favorites-list", "children")],
+    [Input("fav-btn-now-playing", "n_clicks")],
+    prevent_initial_call=True
+)
+def toggle_favorite(n_clicks):
+    global favorites, current_song_index
+    song = df.iloc[current_song_index]
+    song_id = song["id"]
+
+    if song_id in favorites:
+        favorites.remove(song_id)
+        heart_icon = "🔶"
+    else:
+        favorites.append(song_id)
+        heart_icon = "❤️"
+
+    favorite_songs_ui = [html.Li(df[df["id"] == song]["title"].values[0]) for song in favorites]
+    return heart_icon, favorite_songs_ui
 
 if __name__ == '__main__':
     app.run_server(debug=True)
