@@ -126,6 +126,21 @@ song_list = create_song_list(df)
 app.layout = html.Div([
     html.H1("Isaac's Personal Music Library and Player", style={"text-align": "center"}),
 
+    # Filter Dropdown
+    html.Div([
+        html.Label("Filter Songs:"),
+        dcc.Dropdown(
+            id="filter-dropdown",
+            options=[
+                {"label": "All Songs", "value": "all"},
+                {"label": "Favorites", "value": "favorites"}
+            ],
+            value="all",
+            clearable=False,
+            style={"width": "50%"}
+        )
+    ], style={"text-align": "center", "margin-bottom": "10px"}),
+
     # Songs & Lyrics Section
     html.Div([
         html.Div([
@@ -142,7 +157,7 @@ app.layout = html.Div([
         "justify-content": "space-between",
         "width": "90%",
         "margin": "auto"
-    }),  # ✅ Comma added here
+    }),
 
     # Now Playing Section (Updated Styling with Video)
     html.Div([
@@ -167,7 +182,7 @@ app.layout = html.Div([
                     "z-index": "5"
                 }
             )
-        ], style={"position": "relative", "width": "100%", "text-align": "right"}),  # ✅ Comma added here
+        ], style={"position": "relative", "width": "100%", "text-align": "right"}),
 
         html.Img(id="now-playing-artwork", style={"width": "120px", "height": "120px", "border-radius": "10px"}),
         html.H2(id="now-playing-title"),
@@ -188,7 +203,10 @@ app.layout = html.Div([
         html.Div([
             html.Button("⏮️ Previous", id="prev-btn", className="control-button"),
             html.Button("⏭️ Next", id="next-btn", className="control-button")
-        ], style={"text-align": "center", "margin-top": "10px"})
+        ], style={"text-align": "center", "margin-top": "10px"}),
+
+        # Favorite Button in Now Playing
+        html.Button("❤️", id="fav-now-playing", n_clicks=0, className="favorite-button", style={"font-size": "24px"})
     ], className="music-player", style={
         "background": "black",
         "border": "2px solid white",
@@ -203,14 +221,14 @@ app.layout = html.Div([
     })
 ])
 
-
 # Callbacks
 @app.callback(
     [Output("now-playing-title", "children"),
      Output("now-playing-artwork", "src"),
      Output("now-playing-details", "children"),
      Output("audio-player", "src"),
-     Output("lyrics", "children")],  
+     Output("lyrics", "children"),
+     Output("fav-now-playing", "style")],  # Added favorite button update
     [Input(f"song-btn-{i}", "n_clicks") for i in range(len(df))] +
     [Input("prev-btn", "n_clicks"), Input("next-btn", "n_clicks")],
     prevent_initial_call=True
@@ -220,7 +238,7 @@ def update_now_playing(*clicks):
     ctx = dash.callback_context
 
     if not ctx.triggered:
-        return "Select a Song", "/assets/default_artwork.jpg", "", "", "No Lyrics Available"
+        return "Select a Song", "/assets/default_artwork.jpg", "", "", "No Lyrics Available", {"color": "blue"}
 
     triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
@@ -234,11 +252,51 @@ def update_now_playing(*clicks):
     song = df.iloc[current_song_index]
     song_url = f"/music/{song['file_path']}"
     
+    fav_color = "red" if song["title"] in favorite_songs else "blue"
+
     return (song["title"], 
             song["artwork"], 
             f"Album: {song['album']} | Artist: {song['artist']} | Year: {song['year']} | Length: {song['duration']}",
             song_url,
-            song["lyrics"])
+            song["lyrics"],
+            {"color": fav_color})
+
+# Callback for the filter dropdown
+@app.callback(
+    Output("songs-list", "children"),
+    [Input("filter-dropdown", "value")]
+)
+def filter_songs(filter_value):
+    if filter_value == "favorites":
+        filtered_songs = df[df["title"].isin(favorite_songs)]
+    else:
+        filtered_songs = df
+
+    return [
+        html.Div([
+            html.Button(song["title"], id=f"song-btn-{i}", className="song-button"),
+            html.Button("❤️", id=f"fav-btn-{i}", n_clicks=0, className="favorite-button", 
+                        style={"color": "red" if song["title"] in favorite_songs else "blue"})
+        ], className="song-item") for i, song in filtered_songs.iterrows()
+    ]
+
+# Callback to toggle favorite status
+@app.callback(
+    Output("fav-now-playing", "style"),
+    [Input("fav-now-playing", "n_clicks")],
+    prevent_initial_call=True
+)
+def toggle_favorite(n_clicks):
+    global favorite_songs
+    song = df.iloc[current_song_index]["title"]
+
+    if song in favorite_songs:
+        favorite_songs.remove(song)
+        return {"color": "blue"}
+    else:
+        favorite_songs.add(song)
+        return {"color": "red"}
 
 if __name__ == '__main__':
     app.run_server(debug=True)
+
