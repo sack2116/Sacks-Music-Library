@@ -14,14 +14,13 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MUSIC_DIR = os.path.join(BASE_DIR, "MusicAlbums")
 FAVORITES_FILE = os.path.join(BASE_DIR, "favorites.json")  
 
-# Load favorite songs from JSON file
+# Load favorite songs
 def load_favorites():
     if os.path.exists(FAVORITES_FILE):
         with open(FAVORITES_FILE, "r") as f:
             return set(json.load(f))  
     return set()
 
-# Save favorite songs
 def save_favorites(favorites):
     with open(FAVORITES_FILE, "w") as f:
         json.dump(list(favorites), f)
@@ -154,12 +153,20 @@ app.layout = html.Div([
         html.H2(id="now-playing-title", className="now-playing-title"),
         html.P(id="now-playing-details", className="now-playing-details"),
 
-        html.Audio(id="audio-player", controls=True, autoPlay=True, className="audio-player"),
+        html.Div([
+            html.Audio(id="audio-player", controls=True, autoPlay=True, style={
+                "width": "100%", "height": "80px",
+                "border": "2px solid #40E0D0",
+                "border-radius": "5px",
+                "padding": "10px",
+                "margin-top": "10px"
+            })
+        ]),
 
         html.Div([
             html.Button("⏮️ Previous", id="prev-btn", className="control-button"),
             html.Button("⏭️ Next", id="next-btn", className="control-button"),
-            html.Button("🔶", id="fav-btn-now-playing", n_clicks=0, className="control-button"),
+            html.Button("❤️", id="fav-btn-now-playing", n_clicks=0, className="control-button"),
         ], style={"text-align": "center", "margin-top": "10px"}),
 
     ], className="music-player"),
@@ -201,32 +208,7 @@ def update_now_playing(*clicks):
     song = df.iloc[current_song_index]
     song_url = f"/music/{song['file_path']}"
 
-    return (song["title"], 
-            song["artwork"], 
-            f"Album: {song['album']} | Artist: {song['artist']} | Genre: {song['genre']} | Year: {song['year']} | Duration: {song['duration']}",
-            song_url,
-            song["lyrics"])
-
-@app.callback(
-    [Output("fav-btn-now-playing", "children"),
-     Output("favorites-list", "children")],
-    [Input("fav-btn-now-playing", "n_clicks")],
-    prevent_initial_call=True
-)
-def toggle_favorite(n_clicks):
-    global favorites, current_song_index
-    song = df.iloc[current_song_index]
-    song_id = song["id"]
-
-    if song_id in favorites:
-        favorites.remove(song_id)
-        heart_icon = "🔶"
-    else:
-        favorites.append(song_id)
-        heart_icon = "❤️"
-
-    favorite_songs_ui = [html.Li(df[df["id"] == song]["title"].values[0]) for song in favorites]
-    return heart_icon, favorite_songs_ui
+    return (song["title"], song["artwork"], f"Album: {song['album']} | Artist: {song['artist']} | Genre: {song['genre']} | Year: {song['year']}", song_url, song["lyrics"])
 
 if __name__ == '__main__':
     app.run_server(debug=True)
