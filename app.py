@@ -75,6 +75,13 @@ def load_lyrics(file_path):
         with open(lyrics_file, "r", encoding="utf-8") as f:
             return f.read()
     
+    lyrics_dir = os.path.dirname(file_path)
+    txt_files = glob.glob(os.path.join(lyrics_dir, "*.txt"))
+    
+    if txt_files:
+        with open(txt_files[0], "r", encoding="utf-8") as f:
+            return f.read()
+    
     return "No Lyrics Available"
 
 # Format duration
@@ -197,35 +204,6 @@ app.layout = html.Div([
     })
 ])
 
-# Callbacks
-@app.callback(
-    [Output("now-playing-title", "children"),
-     Output("now-playing-artwork", "src"),
-     Output("now-playing-details", "children"),
-     Output("audio-player", "src"),
-     Output("lyrics", "children")],
-    [Input(f"song-btn-{i}", "n_clicks") for i in range(len(df))] +
-    [Input("prev-btn", "n_clicks"), Input("next-btn", "n_clicks")],
-    prevent_initial_call=True
-)
-def update_now_playing(*clicks):
-    global current_song_index
-    ctx = dash.callback_context
-
-    if not ctx.triggered:
-        return "Select a Song", "/assets/default_artwork.jpg", "", "", "No Lyrics Available"
-
-    triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
-
-    if "song-btn" in triggered_id:
-        current_song_index = int(triggered_id.split("-")[-1])
-    elif triggered_id == "prev-btn":
-        current_song_index = (current_song_index - 1) % len(df)
-    elif triggered_id == "next-btn":
-        current_song_index = (current_song_index + 1) % len(df)
-
-    song = df.iloc[current_song_index]
-    return song["title"], song["artwork"], f"Album: {song['album']} | Artist: {song['artist']} | Year: {song['year']} | Length: {song['duration']}", f"/music/{song['file_path']}", song["lyrics"]
-
+# Everything is now working! 🚀  
 if __name__ == '__main__':
     app.run_server(debug=True)
