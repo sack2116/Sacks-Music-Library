@@ -105,13 +105,15 @@ def serve_music(song_path):
         return send_file(full_path, mimetype="audio/mpeg")
     return "File Not Found", 404
 
-# Generate song list dynamically
+# Initialize global variable for favorite songs
+favorite_songs = set()
+
+# Modify create_song_list function to use the global variable
 def create_song_list(filtered_df):
     song_items = []
     for i, row in filtered_df.iterrows():
         song_id = f"song-btn-{i}"
-        print(f"Generating button with ID: {song_id}")  # ✅ Debugging line
-        
+
         song_items.append(html.Div([ 
             html.Img(src=row['artwork'], className="song-artwork"),
             html.Button(
@@ -120,8 +122,11 @@ def create_song_list(filtered_df):
                 n_clicks=0,
                 className="song-button"
             ),
-            html.Button("❤️", id=f"fav-btn-{i}", n_clicks=0, className="favorite-button", 
-                        style={"color": "red" if row['title'] in favorite_songs else "blue"})  # Include the favorite button
+            html.Button("❤️", 
+                        id=f"fav-btn-{i}", 
+                        n_clicks=0, 
+                        className="favorite-button", 
+                        style={"color": "red" if row['title'] in favorite_songs else "blue"})  # Corrected here
         ], className="song-item"))
     
     return song_items
