@@ -89,8 +89,9 @@ def get_artwork_thumbnail(file_path):
 # Create DataFrame for songs
 df = load_songs(MUSIC_DIR)
 
-# Initialize the Dash app
-app = dash.Dash(__name__)
+# Initialize Dash app
+app = dash.Dash(__name__, external_stylesheets=["/assets/style.css"])
+server = app.server
 
 # Layout for the app
 app.layout = html.Div([ 
