@@ -226,13 +226,16 @@ app.layout = html.Div([
         "margin": "20px auto"
     })
 ])
+# Define global variable to store favorites
+favorite_songs = set()
+
 @app.callback(
     [Output("now-playing-title", "children"),
      Output("now-playing-artwork", "src"),
      Output("now-playing-details", "children"),
      Output("audio-player", "src"),
      Output("lyrics", "children")],  
-    [Input(f"song-btn-{i}", "n_clicks") for i in range(len(df))] +  
+    [Input(f"song-btn-{i}", "n_clicks") for i in range(len(df))] +
     [Input("prev-btn", "n_clicks"), Input("next-btn", "n_clicks")],
     prevent_initial_call=True
 )
@@ -255,13 +258,14 @@ def update_now_playing(*clicks):
     song = df.iloc[current_song_index]
     song_url = f"/music/{song['file_path']}"
 
-    print(f"🎵 Playing: {song['title']}")  # ✅ Debugging: Confirm callback triggers
+    print(f"🎵 Playing: {song['title']}")  # Debugging output
 
     return (song["title"], 
             song["artwork"], 
             f"Album: {song['album']} | Artist: {song['artist']} | Year: {song['year']} | Length: {song['duration']}",
             song_url,
-            song["lyrics"])  # ❌ Removed extra return value
+            song["lyrics"])  # ✅ Removed extra return value
+
 
 # Callback for the filter dropdown
 @app.callback(
@@ -282,22 +286,22 @@ def filter_songs(filter_value):
         ], className="song-item") for i, song in filtered_songs.iterrows()
     ]
 
-# Callback to toggle favorite status
 @app.callback(
     Output("fav-now-playing", "style"),
     [Input("fav-now-playing", "n_clicks")],
     prevent_initial_call=True
 )
 def toggle_favorite(n_clicks):
-    global favorite_songs
+    global favorite_songs  # ✅ Ensure global access
+
     song = df.iloc[current_song_index]["title"]
 
     if song in favorite_songs:
         favorite_songs.remove(song)
-        return {"color": "blue"}
+        return {"color": "blue"}  # Unfavorite
     else:
         favorite_songs.add(song)
-        return {"color": "red"}
+        return {"color": "red"}  # Mark as favorite
 
 if __name__ == '__main__':
     app.run_server(debug=True)
