@@ -238,22 +238,27 @@ app.layout = html.Div([
     [Input("prev-btn", "n_clicks"), Input("next-btn", "n_clicks")],
     prevent_initial_call=True
 )
+@app.callback(
+    [Output("now-playing-title", "children"),
+     Output("now-playing-artwork", "src"),
+     Output("now-playing-details", "children"),
+     Output("audio-player", "src"),
+     Output("lyrics", "children")],  
+    [Input({"type": "song-btn", "index": i}, "n_clicks") for i in range(len(df))] +  # Dynamic input
+    [Input("prev-btn", "n_clicks"), Input("next-btn", "n_clicks")],
+    prevent_initial_call=True
+)
 def update_now_playing(*clicks):
     global current_song_index
     ctx = dash.callback_context
 
-    print("Callback triggered!")  # ✅ Debugging line
-    print("Triggered data:", ctx.triggered)  # ✅ Show what triggered the callback
-
     if not ctx.triggered:
-        return "Select a Song", "/assets/default_artwork.jpg", "", "", "No Lyrics Available", {"color": "blue"}
+        return "Select a Song", "/assets/default_artwork.jpg", "", "", "No Lyrics Available"
 
     triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
-    print(f"Triggered by: {triggered_id}")  # ✅ Debugging line
 
     if "song-btn" in triggered_id:
         current_song_index = int(triggered_id.split("-")[-1])
-        print(f"New song index: {current_song_index}")  # ✅ Debugging line
     elif triggered_id == "prev-btn":
         current_song_index = (current_song_index - 1) % len(df)
     elif triggered_id == "next-btn":
@@ -261,16 +266,14 @@ def update_now_playing(*clicks):
 
     song = df.iloc[current_song_index]
     song_url = f"/music/{song['file_path']}"
-    
-    fav_color = "red" if song["title"] in favorite_songs else "blue"
 
-    print(f"Now Playing: {song['title']}")  # ✅ Debugging line
+    print(f"Playing: {song['title']}")  # ✅ Debugging: Confirm callback triggers
 
     return (song["title"], 
             song["artwork"], 
             f"Album: {song['album']} | Artist: {song['artist']} | Year: {song['year']} | Length: {song['duration']}",
             song_url,
-            song["lyrics"],
+            song["lyrics"]),
             {"color": fav_color})
 
 # Callback for the filter dropdown
