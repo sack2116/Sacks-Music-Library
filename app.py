@@ -226,25 +226,13 @@ app.layout = html.Div([
         "margin": "20px auto"
     })
 ])
-
-@app.callback(
-    [Output("now-playing-title", "children"),
-     Output("now-playing-artwork", "src"),
-     Output("now-playing-details", "children"),
-     Output("audio-player", "src"),
-     Output("lyrics", "children"),
-     Output("fav-now-playing", "style")],
-    [Input(f"song-btn-{i}", "n_clicks") for i in range(len(df))] +
-    [Input("prev-btn", "n_clicks"), Input("next-btn", "n_clicks")],
-    prevent_initial_call=True
-)
 @app.callback(
     [Output("now-playing-title", "children"),
      Output("now-playing-artwork", "src"),
      Output("now-playing-details", "children"),
      Output("audio-player", "src"),
      Output("lyrics", "children")],  
-    [Input({"type": "song-btn", "index": i}, "n_clicks") for i in range(len(df))] +  # Dynamic input
+    [Input(f"song-btn-{i}", "n_clicks") for i in range(len(df))] +  
     [Input("prev-btn", "n_clicks"), Input("next-btn", "n_clicks")],
     prevent_initial_call=True
 )
@@ -267,14 +255,13 @@ def update_now_playing(*clicks):
     song = df.iloc[current_song_index]
     song_url = f"/music/{song['file_path']}"
 
-    print(f"Playing: {song['title']}")  # ✅ Debugging: Confirm callback triggers
+    print(f"🎵 Playing: {song['title']}")  # ✅ Debugging: Confirm callback triggers
 
     return (song["title"], 
             song["artwork"], 
             f"Album: {song['album']} | Artist: {song['artist']} | Year: {song['year']} | Length: {song['duration']}",
             song_url,
-            song["lyrics"]),
-            {"color": fav_color})
+            song["lyrics"])  # ❌ Removed extra return value
 
 # Callback for the filter dropdown
 @app.callback(
