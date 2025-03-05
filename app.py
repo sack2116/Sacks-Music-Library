@@ -1,4 +1,4 @@
-import os 
+import os
 import base64
 import json
 import pandas as pd
@@ -112,14 +112,16 @@ def create_song_list(filtered_df):
         song_id = f"song-btn-{i}"
         print(f"Generating button with ID: {song_id}")  # ✅ Debugging line
         
-        song_items.append(html.Div([
+        song_items.append(html.Div([ 
             html.Img(src=row['artwork'], className="song-artwork"),
             html.Button(
                 f"{row['title']} - {row['album']} ({row['duration']})",
-                id=song_id,  # ✅ Ensure ID matches callback inputs
-                n_clicks=0,  # ✅ Ensure n_clicks is initialized
+                id=song_id,
+                n_clicks=0,
                 className="song-button"
-            )
+            ),
+            html.Button("❤️", id=f"fav-btn-{i}", n_clicks=0, className="favorite-button", 
+                        style={"color": "red" if row['title'] in favorite_songs else "blue"})  # Include the favorite button
         ], className="song-item"))
     
     return song_items
@@ -131,19 +133,19 @@ song_list = create_song_list(df)
 app.layout = html.Div([
     html.H1("Isaac's Personal Music Library and Player", style={"text-align": "center"}),
 
-    # Filter Dropdown + Songs List Section (Fixed Dropdown Alignment, Style & Autoplay Prevention)
-    html.Div([
+    # Filter Dropdown + Songs List Section
+    html.Div([ 
         html.Div([
             html.Button("Available Songs", className="dropdown-label-button"),
             dcc.Dropdown(
                 id="filter-dropdown",
-                options=[
+                options=[ 
                     {"label": "All Songs", "value": "all"},
                     {"label": "Favorites", "value": "favorites"}
                 ],
                 value="all",
                 clearable=False,
-                style={
+                style={ 
                     "width": "30%",
                     "display": "inline-block",
                     "background-color": "rgba(173, 216, 230, 0.8)",  # Light Transparent Blue
@@ -154,7 +156,6 @@ app.layout = html.Div([
             )
         ], style={"text-align": "right", "margin-bottom": "10px"}),
 
-        # Songs & Lyrics Section
         html.Div([
             html.Div([
                 html.H3("Available Songs", className="section-heading"),
@@ -165,20 +166,18 @@ app.layout = html.Div([
                 html.H3("Lyrics", className="section-heading"),
                 html.Div(id="lyrics", className="lyrics-container")
             ], className="lyrics-container", style={"width": "45%"})
-        ], className="songs-lyrics-container", style={
+        ], className="songs-lyrics-container", style={ 
             "display": "flex",
             "justify-content": "space-between",
             "width": "90%",
             "margin": "auto"
         })
-    ]),  # Closing the main song and lyrics div properly
+    ]),
 
-    # Now Playing Section (Updated Styling with Video)
-    html.Div([
+    html.Div([ 
         html.H3("Now Playing", className="section-heading now-playing-button"),
 
-        # 🎥 Background Video
-        html.Div([
+        html.Div([ 
             html.Video(
                 id="background-video",
                 src="/assets/Sacks.mp4",
@@ -186,7 +185,7 @@ app.layout = html.Div([
                 loop=True,
                 muted=True,
                 controls=False,
-                style={
+                style={ 
                     "width": "320px",
                     "height": "265px",
                     "border-radius": "0px",
@@ -202,10 +201,9 @@ app.layout = html.Div([
         html.H2(id="now-playing-title"),
         html.P(id="now-playing-details"),
 
-        # Audio Player
-        html.Div([
+        html.Div([ 
             html.Audio(id="audio-player", controls=True, autoPlay=True, style={"width": "90%", "height": "80px"})
-        ], style={
+        ], style={ 
             "border": "2px solid #40E0D0",
             "border-radius": "5px",
             "padding": "10px",
@@ -213,13 +211,11 @@ app.layout = html.Div([
             "margin-top": "10px"
         }),
 
-        # Music Controls
         html.Div([
             html.Button("⏮️ Previous", id="prev-btn", className="control-button"),
             html.Button("⏭️ Next", id="next-btn", className="control-button")
         ], style={"text-align": "center", "margin-top": "10px"}),
 
-        # Favorite Button in Now Playing
         html.Button("❤️", id="fav-now-playing", n_clicks=0, className="favorite-button", style={"font-size": "24px"})
     ], className="music-player", style={
         "background": "black",
@@ -243,8 +239,8 @@ favorite_songs = set()
      Output("now-playing-artwork", "src"),
      Output("now-playing-details", "children"),
      Output("audio-player", "src"),
-     Output("lyrics", "children")],  
-    [Input(f"song-btn-{i}", "n_clicks") for i in range(len(df))] +
+     Output("lyrics", "children")],
+    [Input(f"song-btn-{i}", "n_clicks") for i in range(len(df))] + 
     [Input("prev-btn", "n_clicks"), Input("next-btn", "n_clicks")],
     prevent_initial_call=True
 )
@@ -273,8 +269,7 @@ def update_now_playing(*clicks):
             song["artwork"], 
             f"Album: {song['album']} | Artist: {song['artist']} | Year: {song['year']} | Length: {song['duration']}",
             song_url,
-            song["lyrics"])  # ✅ Removed extra return value
-
+            song["lyrics"])
 
 # Callback for the filter dropdown
 @app.callback(
@@ -288,7 +283,7 @@ def filter_songs(filter_value):
         filtered_songs = df
 
     return [
-        html.Div([
+        html.Div([ 
             html.Button(song["title"], id=f"song-btn-{i}", className="song-button"),
             html.Button("❤️", id=f"fav-btn-{i}", n_clicks=0, className="favorite-button", 
                         style={"color": "red" if song["title"] in favorite_songs else "blue"})
