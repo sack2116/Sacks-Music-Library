@@ -132,9 +132,10 @@ song_list = create_song_list(df)
 app.layout = html.Div([
     html.H1("Isaac's Personal Music Library and Player", style={"text-align": "center"}),
 
-    # Filter Dropdown
+   # Filter Dropdown + Songs List Section (Fixed Dropdown Alignment, Style & Autoplay Prevention)
+html.Div([
     html.Div([
-        html.Label("Filter Songs:"),
+        html.Button("Available Songs", className="dropdown-label-button"),
         dcc.Dropdown(
             id="filter-dropdown",
             options=[
@@ -143,16 +144,25 @@ app.layout = html.Div([
             ],
             value="all",
             clearable=False,
-            style={"width": "50%"}
+            style={
+                "width": "30%",
+                "display": "inline-block",
+                "background-color": "rgba(173, 216, 230, 0.8)",  # Light Transparent Blue
+                "color": "black",
+                "border": "1px solid black",
+                "margin-left": "10px"
+            }
         )
-    ], style={"text-align": "center", "margin-bottom": "10px"}),
+    ], style={"text-align": "right", "margin-bottom": "10px"}),
 
     # Songs & Lyrics Section
     html.Div([
         html.Div([
             html.H3("Available Songs", className="section-heading"),
             html.Div(song_list, id="songs-list", className="songs-list-container")
-        ], className="song-list", style={"width": "45%"}),
+        ], className="song-list", style={"width": "45%"})
+    ])
+])
 
         html.Div([
             html.H3("Lyrics", className="section-heading"),
