@@ -105,22 +105,28 @@ def serve_music(song_path):
         return send_file(full_path, mimetype="audio/mpeg")
     return "File Not Found", 404
 
+# Generate song list dynamically
 def create_song_list(filtered_df):
-    return [
-        html.Div([
+    song_items = []
+    for i, row in filtered_df.iterrows():
+        song_id = f"song-btn-{i}"
+        print(f"Generating button with ID: {song_id}")  # ✅ Debugging line
+        
+        song_items.append(html.Div([
             html.Img(src=row['artwork'], className="song-artwork"),
             html.Button(
                 f"{row['title']} - {row['album']} ({row['duration']})",
-                id=f"song-btn-{i}",  # ✅ Ensure ID matches callback inputs
-                n_clicks=0,
+                id=song_id,  # ✅ Ensure ID matches callback inputs
+                n_clicks=0,  # ✅ Ensure `n_clicks` is initialized
                 className="song-button"
             )
-        ], className="song-item")
-        for i, row in filtered_df.iterrows()
-    ]
+        ], className="song-item"))
+    
+    return song_items
 
-
+# ✅ Ensure song_list is initialized right after the function
 song_list = create_song_list(df)
+
 
 # Layout
 app.layout = html.Div([
@@ -228,27 +234,26 @@ app.layout = html.Div([
      Output("audio-player", "src"),
      Output("lyrics", "children"),
      Output("fav-now-playing", "style")],
-    [Input(f"song-btn-{i}", "n_clicks") for i in range(len(df))] +  # Click inputs for each song
-    [Input("prev-btn", "n_clicks"), Input("next-btn", "n_clicks")], # Prev & Next buttons
+    [Input(f"song-btn-{i}", "n_clicks") for i in range(len(df))] +
+    [Input("prev-btn", "n_clicks"), Input("next-btn", "n_clicks")],
     prevent_initial_call=True
 )
 def update_now_playing(*clicks):
     global current_song_index
     ctx = dash.callback_context
 
-    # Debug: Print which input triggered the callback
-    print("Callback triggered!")
-    print("Triggered data:", ctx.triggered)
+    print("Callback triggered!")  # ✅ Debugging line
+    print("Triggered data:", ctx.triggered)  # ✅ Show what triggered the callback
 
     if not ctx.triggered:
         return "Select a Song", "/assets/default_artwork.jpg", "", "", "No Lyrics Available", {"color": "blue"}
 
     triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
-    print(f"Triggered by: {triggered_id}")
+    print(f"Triggered by: {triggered_id}")  # ✅ Debugging line
 
     if "song-btn" in triggered_id:
         current_song_index = int(triggered_id.split("-")[-1])
-        print(f"New song index: {current_song_index}")
+        print(f"New song index: {current_song_index}")  # ✅ Debugging line
     elif triggered_id == "prev-btn":
         current_song_index = (current_song_index - 1) % len(df)
     elif triggered_id == "next-btn":
@@ -259,7 +264,7 @@ def update_now_playing(*clicks):
     
     fav_color = "red" if song["title"] in favorite_songs else "blue"
 
-    print(f"Now Playing: {song['title']}")  # Debugging line
+    print(f"Now Playing: {song['title']}")  # ✅ Debugging line
 
     return (song["title"], 
             song["artwork"], 
@@ -267,7 +272,6 @@ def update_now_playing(*clicks):
             song_url,
             song["lyrics"],
             {"color": fav_color})
-
 
 # Callback for the filter dropdown
 @app.callback(
