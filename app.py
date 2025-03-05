@@ -111,7 +111,7 @@ def create_song_list(filtered_df):
             html.Img(src=row['artwork'], className="song-artwork"),
             html.Button(
                 f"{row['title']} - {row['album']} ({row['duration']})",
-                id=f"song-btn-{i}",  # Ensure IDs match
+                id=f"song-btn-{i}",  # ✅ Ensure ID matches callback inputs
                 n_clicks=0,
                 className="song-button"
             )
@@ -227,25 +227,28 @@ app.layout = html.Div([
      Output("now-playing-details", "children"),
      Output("audio-player", "src"),
      Output("lyrics", "children"),
-     Output("fav-now-playing", "style")],  
-    [Input(f"song-btn-{i}", "n_clicks") for i in range(len(df))] +
-    [Input("prev-btn", "n_clicks"), Input("next-btn", "n_clicks")],
+     Output("fav-now-playing", "style")],
+    [Input(f"song-btn-{i}", "n_clicks") for i in range(len(df))] +  # Click inputs for each song
+    [Input("prev-btn", "n_clicks"), Input("next-btn", "n_clicks")], # Prev & Next buttons
     prevent_initial_call=True
 )
 def update_now_playing(*clicks):
     global current_song_index
     ctx = dash.callback_context
 
+    # Debug: Print which input triggered the callback
+    print("Callback triggered!")
+    print("Triggered data:", ctx.triggered)
+
     if not ctx.triggered:
-        print("No song was clicked")
         return "Select a Song", "/assets/default_artwork.jpg", "", "", "No Lyrics Available", {"color": "blue"}
 
     triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
-    print(f"Triggered by: {triggered_id}")  # Debugging line
+    print(f"Triggered by: {triggered_id}")
 
     if "song-btn" in triggered_id:
         current_song_index = int(triggered_id.split("-")[-1])
-        print(f"New song index: {current_song_index}")  # Debugging line
+        print(f"New song index: {current_song_index}")
     elif triggered_id == "prev-btn":
         current_song_index = (current_song_index - 1) % len(df)
     elif triggered_id == "next-btn":
@@ -254,9 +257,9 @@ def update_now_playing(*clicks):
     song = df.iloc[current_song_index]
     song_url = f"/music/{song['file_path']}"
     
-    print(f"Now Playing: {song['title']}")  # Debugging line
-
     fav_color = "red" if song["title"] in favorite_songs else "blue"
+
+    print(f"Now Playing: {song['title']}")  # Debugging line
 
     return (song["title"], 
             song["artwork"], 
@@ -264,6 +267,7 @@ def update_now_playing(*clicks):
             song_url,
             song["lyrics"],
             {"color": fav_color})
+
 
 # Callback for the filter dropdown
 @app.callback(
