@@ -106,27 +106,38 @@ def serve_music(song_path):
     return "File Not Found", 404
 
 # Generate song list dynamically
+# Preventing autoplay: Remove autoPlay=True in PartB
+
+# Modify create_song_list to include artwork, album, and duration properly
 def create_song_list(filtered_df):
     song_items = []
     for i, row in filtered_df.iterrows():
         song_id = f"song-btn-{i}"
-        print(f"Generating button with ID: {song_id}")  # ✅ Debugging line
+        fav_id = f"fav-btn-{i}"
         
         song_items.append(html.Div([
-            html.Img(src=row['artwork'], className="song-artwork"),
-            html.Button(
-                f"{row['title']} - {row['album']} ({row['duration']})",
-                id=song_id,  # ✅ Ensure ID matches callback inputs
-                n_clicks=0,  # ✅ Ensure `n_clicks` is initialized
-                className="song-button"
-            )
+            html.Img(src=row['artwork'], className="song-artwork"),  # Show album art
+            html.Div([
+                html.Button(
+                    f"{row['title']} - {row['album']} ({row['duration']})",  
+                    id=song_id,
+                    n_clicks=0,
+                    className="song-button"
+                ),
+                html.Button(
+                    "❤️",
+                    id=fav_id,
+                    n_clicks=0,
+                    className="favorite-button",
+                    style={"color": "red" if row["title"] in favorite_songs else "blue"}
+                )  # Sync favorite button colors
+            ], className="song-info")
         ], className="song-item"))
     
     return song_items
 
-# ✅ Ensure song_list is initialized right after the function
+# Ensure song_list is initialized properly with album artwork and duration
 song_list = create_song_list(df)
-
 
 # Layout
 app.layout = html.Div([
