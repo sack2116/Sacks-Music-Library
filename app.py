@@ -89,6 +89,12 @@ def get_artwork_thumbnail(file_path):
 # Create DataFrame for songs
 df = load_songs(MUSIC_DIR)
 
+import os
+import glob
+import dash
+from dash import dcc, html
+from dash.dependencies import Input, Output
+
 # Initialize Dash app
 app = dash.Dash(__name__, external_stylesheets=["/assets/style.css"])
 server = app.server  # Keeping original code intact
@@ -111,15 +117,16 @@ app.layout = html.Div([
                 value="all",
                 clearable=False,
                 style={ 
-                    "width": "30%",
+                    "width": "auto",
                     "display": "inline-block",
                     "background-color": "rgba(173, 216, 230, 0.8)",  # Light Transparent Blue
                     "color": "black",
                     "border": "1px solid black",
-                    "margin-left": "10px"
+                    "margin-left": "10px",
+                    "max-width": "120px"  # Adjust to fit the longest label (e.g., "Favorites")
                 }
             )
-        ], style={"text-align": "right", "margin-bottom": "10px"}),
+        ], style={"text-align": "right", "margin-bottom": "10px", "width": "100%"}),
 
         html.Div([ 
             # Available Songs Section
@@ -201,10 +208,21 @@ app.layout = html.Div([
 # Initialize favorite songs set globally
 favorite_songs = set()
 
-# Load Lyrics (PartA)
-def load_lyrics(song):
-    # If lyrics are available, return them, else return 'No Lyrics Available'
-    return song.get("lyrics", "No Lyrics Available")
+# Load lyrics function (PartA)
+def load_lyrics(file_path):
+    lyrics_file = os.path.splitext(file_path)[0] + ".txt"
+    if os.path.exists(lyrics_file):
+        with open(lyrics_file, "r", encoding="utf-8") as f:
+            return f.read()
+    
+    lyrics_dir = os.path.dirname(file_path)
+    txt_files = glob.glob(os.path.join(lyrics_dir, "*.txt"))
+    
+    if txt_files:
+        with open(txt_files[0], "r", encoding="utf-8") as f:
+            return f.read()
+    
+    return "No Lyrics Available"
 
 @app.callback(
     [Output("now-playing-title", "children"),
@@ -235,13 +253,14 @@ def update_now_playing(*clicks):
     song = df.iloc[current_song_index]
     song_url = f"/music/{song['file_path']}"
 
-    print(f"🎵 Playing: {song['title']}")  # Debugging output
+    # Load lyrics using the provided function
+    lyrics_text = load_lyrics(song["file_path"])
 
     return (song["title"], 
             song["artwork"], 
             f"Album: {song['album']} | Artist: {song['artist']} | Year: {song['year']} | Length: {song['duration']}",
             song_url,
-            load_lyrics(song))  # Load lyrics using the function
+            lyrics_text)  # Load lyrics using the function
 
 # Callback for the filter dropdown
 @app.callback(
@@ -261,7 +280,13 @@ def filter_songs(filter_value):
         html.Div([ 
             html.Button(song["title"], id=f"song-btn-{i}", className="song-button"),
             html.Button("❤️", id=f"fav-btn-{i}", n_clicks=0, className="favorite-button", 
-                        style={"color": "red" if song["title"] in favorite_songs else "blue"})
+                        style={"color": "red" if song["title"] in favorite_songs else "blue"}),
+            html.Div([
+                html.Img(src=song["artwork"], alt="Artwork", style={"width": "50px", "height": "50px"}),
+                html.P(song["title"]),
+                html.P(song["album"]),
+                html.P(song["duration"])
+            ], style={"display": "flex", "align-items": "center"})
         ], className="song-item") for i, song in filtered_songs.iterrows()
     ]
 
