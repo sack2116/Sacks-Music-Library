@@ -184,61 +184,56 @@ html.Div([
     "margin": "auto"
 }),
 
-    # Now Playing Section
+html.Div([
+    html.H3("Now Playing", className="section-heading now-playing-button"),
+    html.Div(style={"position": "relative", "width": "100%", "text-align": "right"}, children=[
+        html.Video(
+            id="background-video",
+            src="/assets/Sacks.mp4",
+            autoPlay=True,
+            loop=True,
+            muted=True,
+            controls=False,
+            style={
+                "width": "310px",
+                "height": "270px",
+                "border-radius": "10px",
+                "position": "absolute",
+                "top": "-60px",
+                "right": "20px",
+                "z-index": "5"
+            }
+        )
+    ]),
+    html.Img(id="now-playing-artwork", style={"width": "120px", "height": "120px"}),
+    html.H2(id="now-playing-title"),
+    html.P(id="now-playing-details"),
     html.Div([
-        html.H3("Now Playing", className="section-heading now-playing-button"),
-                html.Div(style={"position": "relative", "width": "100%", "text-align": "right"}, children=[
-            html.Video(
-                id="background-video",
-                src="/assets/Sacks.mp4",
-                autoPlay=True,
-                loop=True,
-                muted=True,
-                controls=False,
-                style={
-                    "width": "310px",
-                    "height": "270px",
-                    "border-radius": "10px",
-                    "position": "absolute",
-                    "top": "-60px",
-                    "right": "20px",
-                    "z-index": "5"
-                }
-            )
-        ]),
-        html.Img(id="now-playing-artwork", style={"width": "120px", "height": "120px"}),
-        html.H2(id="now-playing-title"),
-        html.P(id="now-playing-details"),
-                html.Div([
-            html.Audio(id="audio-player", controls=True, autoPlay=True, style={"width": "100%", "height": "80px"})
-        ], style={
-            "border": "2px solid #40E0D0",
-            "border-radius": "5px",
-            "padding": "10px",
-            "width": "100%",
-            "margin-top": "10px"
-        }),
-
-        html.Div([
-            html.Button("⏮️ Previous", id="prev-btn", className="control-button"),
-            html.Button("⏭️ Next", id="next-btn", className="control-button")
-        ], style={"text-align": "center", "margin-top": "10px"}),
-
-        html.Button("❤️", id="fav-now-playing", n_clicks=0, className="favorite-button")
-    ], className="music-player", style={
-        "background": "black",
-        "border": "2px solid white",
-        "border-radius": "10px",
-        "padding": "20px",
-        "position": "relative",
-        "display": "flex",
-        "flex-direction": "column",
-        "align-items": "center",
-        "width": "90%",  # ✅ Match the width of `songs-lyrics-container`
-        "margin": "20px auto"
-    })
-])
-
+        html.Audio(id="audio-player", controls=True, autoPlay=True, style={"width": "100%", "height": "80px"})
+    ], style={
+        "border": "2px solid #40E0D0",
+        "border-radius": "5px",
+        "padding": "10px",
+        "width": "100%",
+        "margin-top": "10px"
+    }),
+    html.Div([
+        html.Button("⏮️ Previous", id="prev-btn", className="control-button"),
+        html.Button("⏭️ Next", id="next-btn", className="control-button")
+    ], style={"text-align": "center", "margin-top": "10px"}),
+    html.Button("❤️", id="fav-now-playing", n_clicks=0, className="favorite-button")
+], className="music-player", style={
+    "background": "black",
+    "border": "2px solid white",
+    "border-radius": "10px",
+    "padding": "20px",
+    "position": "relative",
+    "display": "flex",
+    "flex-direction": "column",
+    "align-items": "center",
+    "width": "90%",  # ✅ Match the width of `songs-lyrics-container`
+    "margin": "20px auto"
+})
 
 favorite_songs = set()
 current_song_index = 0
