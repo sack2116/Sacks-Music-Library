@@ -244,12 +244,7 @@ current_song_index = 0
     [Input("prev-btn", "n_clicks"), Input("next-btn", "n_clicks")],
     prevent_initial_call=True
 )
-@app.callback(
-    Output({"type": "favorite-icon", "index": MATCH}, "className"),
-    Input({"type": "favorite-button", "index": MATCH}, "n_clicks"),
-    State({"type": "favorite-icon", "index": MATCH}, "className"),
-    prevent_initial_call=True,
-)
+
 def update_now_playing(*clicks):
     global current_song_index
     ctx = dash.callback_context
