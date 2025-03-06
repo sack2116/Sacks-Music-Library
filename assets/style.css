@@ -139,4 +139,20 @@ body {
     background-color: #2eb8b8;
     transform: scale(1.05); /* Slight zoom on hover */
 }
+.dropdown-label-button {
+    background-color: #007bff;  /* Light blue */
+    color: white;
+    border: none;
+    padding: 10px;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    font-weight: bold;
+}
+
+#filter-dropdown {
+    border: none;
+    margin-top: 0;
+}
+
 
