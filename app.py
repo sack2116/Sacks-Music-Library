@@ -129,6 +129,7 @@ def create_song_list(filtered_df):
     return song_items
 
 
+
 # ✅ Ensure song_list is initialized right after the function
 song_list = create_song_list(df)
 
@@ -136,10 +137,10 @@ song_list = create_song_list(df)
 app.layout = html.Div([
     html.H1("Isaac's Personal Music Library and Player", style={"text-align": "center"}),
 
-    # Filter Dropdown + Songs List Section (Fixed Dropdown Alignment, Style & Autoplay Prevention)
+    # Filter Dropdown inside Available Songs Button
     html.Div([
         html.Div([
-            html.Button("Available Songs", className="dropdown-label-button"),
+            html.Button("Available Songs ▼", className="dropdown-label-button", id="available-songs-button"),
             dcc.Dropdown(
                 id="filter-dropdown",
                 options=[
@@ -149,34 +150,38 @@ app.layout = html.Div([
                 value="all",
                 clearable=False,
                 style={
-                    "width": "30%",
-                    "display": "inline-block",
-                    "background-color": "rgba(173, 216, 230, 0.8)",  # Light Transparent Blue
+                    "position": "absolute",
+                    "top": "100%",  # Below the button
+                    "left": "0",  # Align to left edge
+                    "width": "90px",  # Small width (fits 'Favorites')
+                    "background-color": "rgba(173, 216, 230, 0.8)",  # Light transparent blue
                     "color": "black",
                     "border": "1px solid black",
-                    "margin-left": "10px"
+                    "z-index": "10",
+                    "display": "none"  # Hidden initially
                 }
             )
-        ], style={"text-align": "right", "margin-bottom": "10px"}),
+        ], style={"position": "relative", "display": "inline-block"})  # Wraps both elements
+    ], style={"text-align": "right", "margin-bottom": "10px"}),
 
-        # Songs & Lyrics Section
+    # Songs & Lyrics Section
+    html.Div([
         html.Div([
-            html.Div([
-                html.H3("Available Songs", className="section-heading"),
-                html.Div(song_list, id="songs-list", className="songs-list-container")
-            ], className="song-list", style={"width": "45%"}),
+            html.H3("Available Songs", className="section-heading"),
+            html.Div(song_list, id="songs-list", className="songs-list-container")
+        ], className="song-list", style={"width": "45%"}),
 
-            html.Div([
-                html.H3("Lyrics", className="section-heading"),
-                html.Div(id="lyrics", className="lyrics-container")
-            ], className="lyrics-container", style={"width": "45%"})
-        ], className="songs-lyrics-container", style={
-            "display": "flex",
-            "justify-content": "space-between",
-            "width": "90%",
-            "margin": "auto"
-        })
-    ]),  # Closing the main song and lyrics div properly
+        html.Div([
+            html.H3("Lyrics", className="section-heading"),
+            html.Div(id="lyrics", className="lyrics-container")
+        ], className="lyrics-container", style={"width": "45%"})
+    ], className="songs-lyrics-container", style={
+        "display": "flex",
+        "justify-content": "space-between",
+        "width": "90%",
+        "margin": "auto"
+    })
+])
 
     # Now Playing Section (Updated Styling with Video)
     html.Div([
@@ -286,6 +291,19 @@ def update_now_playing(*clicks):
     Output("songs-list", "children"),
     [Input("filter-dropdown", "value")]
 )
+from dash.dependencies import Input, Output, State
+
+@app.callback(
+    Output("filter-dropdown", "style"),
+    Input("available-songs-button", "n_clicks"),
+    State("filter-dropdown", "style"),
+    prevent_initial_call=True
+)
+def toggle_dropdown(n_clicks, current_style):
+    if current_style.get("display") == "none":
+        return {**current_style, "display": "block"}
+    return {**current_style, "display": "none"}
+
 def filter_songs(filter_value):
     if filter_value == "favorites":
         filtered_songs = df[df["title"].isin(favorite_songs)]
