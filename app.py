@@ -105,24 +105,29 @@ def serve_music(song_path):
         return send_file(full_path, mimetype="audio/mpeg")
     return "File Not Found", 404
 
-# Generate song list dynamically
 def create_song_list(filtered_df):
     song_items = []
+    
+    print("Columns in filtered_df:", filtered_df.columns)  # ✅ Debugging
+    
     for i, row in filtered_df.iterrows():
+        print(f"Row {i} data:", row.to_dict())  # ✅ Debugging
+
         song_id = f"song-btn-{i}"
-        print(f"Generating button with ID: {song_id}")  # ✅ Debugging line
-        
+        artwork_src = row['artwork'] if row['artwork'] else "/assets/default_artwork.jpg"
+
         song_items.append(html.Div([
-            html.Img(src=row['artwork'], className="song-artwork"),
+            html.Img(src=artwork_src, className="song-artwork", style={"width": "50px", "height": "50px"}),
             html.Button(
                 f"{row['title']} - {row['album']} ({row['duration']})",
-                id=song_id,  # ✅ Ensure ID matches callback inputs
-                n_clicks=0,  # ✅ Ensure n_clicks is initialized
+                id=song_id, 
+                n_clicks=0,
                 className="song-button"
             )
         ], className="song-item"))
     
     return song_items
+
 
 # ✅ Ensure song_list is initialized right after the function
 song_list = create_song_list(df)
