@@ -67,7 +67,14 @@ def load_lyrics(file_path):
         with open(lyrics_file, "r", encoding="utf-8") as f:
             return f.read()
     
-    return "No lyrics available."
+    lyrics_dir = os.path.dirname(file_path)
+    txt_files = glob.glob(os.path.join(lyrics_dir, "*.txt"))
+    
+    if txt_files:
+        with open(txt_files[0], "r", encoding="utf-8") as f:
+            return f.read()
+    
+    return "No Lyrics Available"
 
 # Format duration (minutes:seconds)
 def format_duration(file_path):
@@ -79,11 +86,11 @@ def format_duration(file_path):
 
 # Get artwork
 def get_artwork_thumbnail(file_path):
-    artwork_file = os.path.splitext(file_path)[0] + ".jpg"
-    if os.path.exists(artwork_file):
-        with open(artwork_file, "rb") as img:
-            return "data:image/jpeg;base64," + base64.b64encode(img.read()).decode('utf-8')
-    return "/assets/default_artwork.jpg"
+    audio = MP3(file_path, ID3=ID3)
+    for tag in audio.tags.values():
+        if isinstance(tag, APIC):  
+            return f"data:image/jpeg;base64,{base64.b64encode(tag.data).decode()}"
+    return os.path.join("assets", "default_artwork.jpg")
 
 df = load_songs(MUSIC_DIR)
 
