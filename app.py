@@ -285,13 +285,6 @@ def update_now_playing(*clicks):
             song["lyrics"])  # ✅ Removed extra return value
 
 
-# Callback for the filter dropdown
-@app.callback(
-    Output("songs-list", "children"),
-    [Input("filter-dropdown", "value")]
-)
-from dash.dependencies import Input, Output, State
-
 @app.callback(
     Output("filter-dropdown", "style"),
     Input("available-songs-button", "n_clicks"),
@@ -303,6 +296,10 @@ def toggle_dropdown(n_clicks, current_style):
         return {**current_style, "display": "block"}
     return {**current_style, "display": "none"}
 
+@app.callback(
+    Output("songs-list", "children"),
+    [Input("filter-dropdown", "value")]
+)
 def filter_songs(filter_value):
     if filter_value == "favorites":
         filtered_songs = df[df["title"].isin(favorite_songs)]
