@@ -145,23 +145,32 @@ html.Div([
         html.Button("Available Songs 🔽", 
                     id="toggle-dropdown", 
                     className="dropdown-label-button", 
-                    n_clicks=0),
-        html.Div([
-            dcc.Dropdown(
-                id="filter-dropdown",
-                options=[ 
-                    {"label": "All Songs", "value": "all"},
-                    {"label": "Favorites ❤️", "value": "favorites"},
-                    {"label": "By Album", "value": "by_album"}
-                ],
-                value="all",
-                clearable=False,
-                style={"width": "100%", "margin-top": "5px", "display": "none"}  # Hidden by default
-            ),
-        ], id="dropdown-container")  # Dropdown container wraps dropdown properly
-    ], className="song-list", style={"width": "45%"}),  
+                    n_clicks=0,
+                    style={"display": "flex", "justify-content": "space-between", 
+                           "align-items": "center", "width": "100%"}),  # Ensures proper alignment
+        
+        dcc.Dropdown(
+            id="filter-dropdown",
+            options=[ 
+                {"label": "All Songs", "value": "all"},
+                {"label": "Favorites ❤️", "value": "favorites"},
+                {"label": "By Album", "value": "by_album"}
+            ],
+            value="all",
+            clearable=False,
+            style={
+                "width": "150px",  
+                "position": "absolute",
+                "right": "10px",  # Align to the right inside the button
+                "top": "5px",
+                "z-index": "10",
+                "display": "none"  # Hidden by default
+            }
+        ),
+    ], className="song-list", style={"width": "45%", "position": "relative"}),  
 
     html.Div(id="songs-list", className="songs-list-container"),  
+]),
 
     # Lyrics Section
     html.Div([
