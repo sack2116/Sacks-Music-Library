@@ -91,6 +91,11 @@ def get_artwork_thumbnail(file_path):
 # Load songs
 df = load_songs(MUSIC_DIR)
 
+# Initialize Dash app
+app = dash.Dash(__name__, external_stylesheets=["/assets/style.css"])
+server = app.server
+app.css.config.serve_locally = True  
+
 # Serve music files
 @app.server.route("/music/<path:song_path>")
 def serve_music(song_path):
@@ -98,10 +103,6 @@ def serve_music(song_path):
     if os.path.exists(full_path):
         return send_file(full_path, mimetype="audio/mpeg")
     return "File Not Found", 404
-# Initialize Dash app
-app = dash.Dash(__name__, external_stylesheets=["/assets/style.css"])
-server = app.server
-app.css.config.serve_locally = True  
 
 app.layout = html.Div([
     html.H1("Isaac's Personal Music Library and Player", style={"text-align": "center"}),
