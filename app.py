@@ -145,32 +145,23 @@ html.Div([
         html.Button("Available Songs 🔽", 
                     id="toggle-dropdown", 
                     className="dropdown-label-button", 
-                    n_clicks=0,
-                    style={"display": "flex", "justify-content": "space-between", 
-                           "align-items": "center", "width": "100%"}),  # Ensures proper alignment
-        
-        dcc.Dropdown(
-            id="filter-dropdown",
-            options=[ 
-                {"label": "All Songs", "value": "all"},
-                {"label": "Favorites ❤️", "value": "favorites"},
-                {"label": "By Album", "value": "by_album"}
-            ],
-            value="all",
-            clearable=False,
-            style={
-                "width": "150px",  
-                "position": "absolute",
-                "right": "10px",  # Align to the right inside the button
-                "top": "5px",
-                "z-index": "10",
-                "display": "none"  # Hidden by default
-            }
-        ),
-    ], className="song-list", style={"width": "45%", "position": "relative"}),  
+                    n_clicks=0),
+        html.Div([
+            dcc.Dropdown(
+                id="filter-dropdown",
+                options=[ 
+                    {"label": "All Songs", "value": "all"},
+                    {"label": "Favorites ❤️", "value": "favorites"},
+                    {"label": "By Album", "value": "by_album"}
+                ],
+                value="all",
+                clearable=False,
+                style={"width": "100%", "margin-top": "5px", "display": "none"}  # Hidden by default
+            ),
+        ], id="dropdown-container")  # Dropdown container wraps dropdown properly
+    ], className="song-list", style={"width": "45%"}),  
 
     html.Div(id="songs-list", className="songs-list-container"),  
-]),
 
     # Lyrics Section
     html.Div([
@@ -184,56 +175,61 @@ html.Div([
     "margin": "auto"
 }),
 
-html.Div([
-    html.H3("Now Playing", className="section-heading now-playing-button"),
-    html.Div(style={"position": "relative", "width": "100%", "text-align": "right"}, children=[
-        html.Video(
-            id="background-video",
-            src="/assets/Sacks.mp4",
-            autoPlay=True,
-            loop=True,
-            muted=True,
-            controls=False,
-            style={
-                "width": "310px",
-                "height": "270px",
-                "border-radius": "10px",
-                "position": "absolute",
-                "top": "-60px",
-                "right": "20px",
-                "z-index": "5"
-            }
-        )
-    ]),
-    html.Img(id="now-playing-artwork", style={"width": "120px", "height": "120px"}),
-    html.H2(id="now-playing-title"),
-    html.P(id="now-playing-details"),
+    # Now Playing Section
     html.Div([
-        html.Audio(id="audio-player", controls=True, autoPlay=True, style={"width": "100%", "height": "80px"})
-    ], style={
-        "border": "2px solid #40E0D0",
-        "border-radius": "5px",
-        "padding": "10px",
-        "width": "100%",
-        "margin-top": "10px"
-    }),
-    html.Div([
-        html.Button("⏮️ Previous", id="prev-btn", className="control-button"),
-        html.Button("⏭️ Next", id="next-btn", className="control-button")
-    ], style={"text-align": "center", "margin-top": "10px"}),
-    html.Button("❤️", id="fav-now-playing", n_clicks=0, className="favorite-button")
-], className="music-player", style={
-    "background": "black",
-    "border": "2px solid white",
-    "border-radius": "10px",
-    "padding": "20px",
-    "position": "relative",
-    "display": "flex",
-    "flex-direction": "column",
-    "align-items": "center",
-    "width": "90%",  # ✅ Match the width of `songs-lyrics-container`
-    "margin": "20px auto"
-})
+        html.H3("Now Playing", className="section-heading now-playing-button"),
+                html.Div(style={"position": "relative", "width": "100%", "text-align": "right"}, children=[
+            html.Video(
+                id="background-video",
+                src="/assets/Sacks.mp4",
+                autoPlay=True,
+                loop=True,
+                muted=True,
+                controls=False,
+                style={
+                    "width": "310px",
+                    "height": "270px",
+                    "border-radius": "10px",
+                    "position": "absolute",
+                    "top": "-60px",
+                    "right": "20px",
+                    "z-index": "5"
+                }
+            )
+        ]),
+        html.Img(id="now-playing-artwork", style={"width": "120px", "height": "120px"}),
+        html.H2(id="now-playing-title"),
+        html.P(id="now-playing-details"),
+                html.Div([
+            html.Audio(id="audio-player", controls=True, autoPlay=True, style={"width": "100%", "height": "80px"})
+        ], style={
+            "border": "2px solid #40E0D0",
+            "border-radius": "5px",
+            "padding": "10px",
+            "width": "100%",
+            "margin-top": "10px"
+        }),
+
+        html.Div([
+            html.Button("⏮️ Previous", id="prev-btn", className="control-button"),
+            html.Button("⏭️ Next", id="next-btn", className="control-button")
+        ], style={"text-align": "center", "margin-top": "10px"}),
+
+        html.Button("❤️", id="fav-now-playing", n_clicks=0, className="favorite-button")
+    ], className="music-player", style={
+        "background": "black",
+        "border": "2px solid white",
+        "border-radius": "10px",
+        "padding": "20px",
+        "position": "relative",
+        "display": "flex",
+        "flex-direction": "column",
+        "align-items": "center",
+        "width": "90%",  # ✅ Match the width of `songs-lyrics-container`
+        "margin": "20px auto"
+    })
+])
+
 
 favorite_songs = set()
 current_song_index = 0
