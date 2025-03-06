@@ -139,41 +139,41 @@ app.layout = html.Div([
         "Isaac's Personal Music Library and Player"
     ], style={"text-align": "center"}),
 
-    # Songs List & Lyrics Section
-   html.Div([
-    html.Button("Available Songs 🔽", 
-                id="toggle-dropdown", 
-                className="dropdown-label-button", 
-                n_clicks=0),
+# Songs List & Lyrics Section
+html.Div([
     html.Div([
-        dcc.Dropdown(
-            id="filter-dropdown",
-            options=[ 
-                {"label": "All Songs", "value": "all"},
-                {"label": "Favorites ❤️", "value": "favorites"},
-                {"label": "By Album", "value": "by_album"}
-            ],
-            value="all",
-            clearable=False,
-            style={"width": "100%", "margin-top": "5px", "display": "none"}  # Hidden by default
-        ),
-    ], id="dropdown-container")
-])
-
-            html.Div(id="songs-list", className="songs-list-container")
-        ], className="song-list", style={"width": "45%"}),  
-
-        # Lyrics Section
+        html.Button("Available Songs 🔽", 
+                    id="toggle-dropdown", 
+                    className="dropdown-label-button", 
+                    n_clicks=0),
         html.Div([
-            html.H3("Lyrics", className="section-heading"),
-            html.Div(id="lyrics", className="lyrics-container")
-        ], className="lyrics-container", style={"width": "45%"})
-    ], className="songs-lyrics-container", style={ 
-        "display": "flex",
-        "justify-content": "space-between",
-        "width": "90%",
-        "margin": "auto"
-    }),
+            dcc.Dropdown(
+                id="filter-dropdown",
+                options=[ 
+                    {"label": "All Songs", "value": "all"},
+                    {"label": "Favorites ❤️", "value": "favorites"},
+                    {"label": "By Album", "value": "by_album"}
+                ],
+                value="all",
+                clearable=False,
+                style={"width": "100%", "margin-top": "5px", "display": "none"}  # Hidden by default
+            ),
+        ], id="dropdown-container")  # Dropdown container wraps dropdown properly
+    ], className="song-list", style={"width": "45%"}),  
+
+    html.Div(id="songs-list", className="songs-list-container"),  
+
+    # Lyrics Section
+    html.Div([
+        html.H3("Lyrics", className="section-heading"),
+        html.Div(id="lyrics", className="lyrics-container")
+    ], className="lyrics-container", style={"width": "45%"})
+], className="songs-lyrics-container", style={ 
+    "display": "flex",
+    "justify-content": "space-between",
+    "width": "90%",
+    "margin": "auto"
+})
 
     # Now Playing Section
     html.Div([
