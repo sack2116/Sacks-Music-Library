@@ -269,18 +269,7 @@ def update_now_playing(*clicks):
             f"Album: {song['album']} | Artist: {song['artist']} | Year: {song['year']} | Length: {song['duration']}",
             song_url,
             song["lyrics"])
-@app.callback(
-    Output("filter-dropdown", "style"),
-    Input("toggle-dropdown", "n_clicks"),
-    State("filter-dropdown", "style"),
-    prevent_initial_call=True
-)
-@app.callback(
-    Output({"type": "favorite-icon", "index": MATCH}, "className"),
-    Input({"type": "favorite-button", "index": MATCH}, "n_clicks"),
-    State({"type": "favorite-icon", "index": MATCH}, "className"),
-    prevent_initial_call=True,
-)
+
 def toggle_favorite(n_clicks, class_name):
     song_name = dash.callback_context.triggered[0]["prop_id"].split(".")[0]
     song_name = json.loads(song_name)["index"]
@@ -292,13 +281,27 @@ def toggle_favorite(n_clicks, class_name):
         favorites.append(song_name)
         save_favorites(favorites)
         return "bi bi-heart-fill text-danger"
-
+@app.callback(
+    Output({"type": "favorite-icon", "index": MATCH}, "className"),
+    Input({"type": "favorite-button", "index": MATCH}, "n_clicks"),
+    State({"type": "favorite-icon", "index": MATCH}, "className"),
+    prevent_initial_call=True,
+)
 def toggle_dropdown(n_clicks, dropdown_style):
     if dropdown_style["display"] == "none":
         dropdown_style["display"] = "block"  # Show dropdown
     else:
         dropdown_style["display"] = "none"   # Hide dropdown
     return dropdown_style
+
+@app.callback(
+    Output("filter-dropdown", "style"),
+    Input("toggle-dropdown", "n_clicks"),
+    State("filter-dropdown", "style"),
+    prevent_initial_call=True
+)
+def toggle_dropdown_callback(n_clicks, dropdown_style):
+    return toggle_dropdown(n_clicks, dropdown_style)
 
 @app.callback(
     Output("songs-list", "children"),
