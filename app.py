@@ -139,14 +139,16 @@ app.layout = html.Div([
         "Isaac's Personal Music Library and Player"
     ], style={"text-align": "center"}),
 
-# Songs List & Lyrics Section
 html.Div([
     html.Div([
-        html.Button("Available Songs 🔽", 
+        html.Button("Available Songs", 
                     id="toggle-dropdown", 
                     className="dropdown-label-button", 
                     n_clicks=0),
         html.Div([
+            html.Button("Filter Dropdown 🔽", 
+                        id="filter-button", 
+                        className="filter-dropdown-button"),
             dcc.Dropdown(
                 id="filter-dropdown",
                 options=[ 
@@ -158,10 +160,10 @@ html.Div([
                 clearable=False,
                 style={"width": "100%", "margin-top": "5px", "display": "none"}  # Hidden by default
             ),
-        ], id="dropdown-container")  # Dropdown container wraps dropdown properly
-    ], className="song-list", style={"width": "45%"}),  
+        ], id="dropdown-container", className="dropdown-container")  
+    ], className="song-list", style={"display": "flex", "justify-content": "space-between", "width": "100%"}),  
 
-    html.Div(id="songs-list", className="songs-list-container"),  
+    html.Div(id="songs-list", className="songs-list-container"),
 
     # Lyrics Section
     html.Div([
