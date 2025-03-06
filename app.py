@@ -244,7 +244,12 @@ current_song_index = 0
     [Input("prev-btn", "n_clicks"), Input("next-btn", "n_clicks")],
     prevent_initial_call=True
 )
-
+@app.callback(
+    Output({"type": "favorite-icon", "index": MATCH}, "className"),
+    Input({"type": "favorite-button", "index": MATCH}, "n_clicks"),
+    State({"type": "favorite-icon", "index": MATCH}, "className"),
+    prevent_initial_call=True,
+)
 def update_now_playing(*clicks):
     global current_song_index
     ctx = dash.callback_context
@@ -281,12 +286,7 @@ def toggle_favorite(n_clicks, class_name):
         favorites.append(song_name)
         save_favorites(favorites)
         return "bi bi-heart-fill text-danger"
-@app.callback(
-    Output({"type": "favorite-icon", "index": MATCH}, "className"),
-    Input({"type": "favorite-button", "index": MATCH}, "n_clicks"),
-    State({"type": "favorite-icon", "index": MATCH}, "className"),
-    prevent_initial_call=True,
-)
+
 def toggle_dropdown(n_clicks, dropdown_style):
     if dropdown_style["display"] == "none":
         dropdown_style["display"] = "block"  # Show dropdown
