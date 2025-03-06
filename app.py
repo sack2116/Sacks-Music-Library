@@ -94,6 +94,20 @@ def get_artwork_thumbnail(file_path):
 
 df = load_songs(MUSIC_DIR)
 
+FAVORITES_FILE = "favorites.json"
+
+def load_favorites():
+    if os.path.exists(FAVORITES_FILE):
+        with open(FAVORITES_FILE, "r") as f:
+            return json.load(f)
+    return []
+
+def save_favorites(favorites):
+    with open(FAVORITES_FILE, "w") as f:
+        json.dump(favorites, f)
+
+favorites = load_favorites()
+
 app = dash.Dash(__name__, external_stylesheets=["/assets/style.css"])
 server = app.server
 app.css.config.serve_locally = True
@@ -126,21 +140,26 @@ app.layout = html.Div([
     ], style={"text-align": "center"}),
 
     # Songs List & Lyrics Section
+   html.Div([
+    html.Button("Available Songs 🔽", 
+                id="toggle-dropdown", 
+                className="dropdown-label-button", 
+                n_clicks=0),
     html.Div([
-        # Available Songs + Filter Dropdown
-        html.Div([
-            html.Button("Available Songs", className="dropdown-label-button"),
-            dcc.Dropdown(
-                id="filter-dropdown",
-                options=[ 
-                    {"label": "All Songs", "value": "all"},
-                    {"label": "Favorites", "value": "favorites"},
-                    {"label": "By Album", "value": "by_album"}
-                ],
-                value="all",
-                clearable=False,
-                style={"width": "100%", "margin-top": "5px"}
-            ),
+        dcc.Dropdown(
+            id="filter-dropdown",
+            options=[ 
+                {"label": "All Songs", "value": "all"},
+                {"label": "Favorites ❤️", "value": "favorites"},
+                {"label": "By Album", "value": "by_album"}
+            ],
+            value="all",
+            clearable=False,
+            style={"width": "100%", "margin-top": "5px", "display": "none"}  # Hidden by default
+        ),
+    ], id="dropdown-container")
+])
+
             html.Div(id="songs-list", className="songs-list-container")
         ], className="song-list", style={"width": "45%"}),  
 
@@ -225,6 +244,7 @@ current_song_index = 0
     [Input("prev-btn", "n_clicks"), Input("next-btn", "n_clicks")],
     prevent_initial_call=True
 )
+
 def update_now_playing(*clicks):
     global current_song_index
     ctx = dash.callback_context
@@ -249,6 +269,36 @@ def update_now_playing(*clicks):
             f"Album: {song['album']} | Artist: {song['artist']} | Year: {song['year']} | Length: {song['duration']}",
             song_url,
             song["lyrics"])
+@app.callback(
+    Output("filter-dropdown", "style"),
+    Input("toggle-dropdown", "n_clicks"),
+    State("filter-dropdown", "style"),
+    prevent_initial_call=True
+)
+@app.callback(
+    Output({"type": "favorite-icon", "index": MATCH}, "className"),
+    Input({"type": "favorite-button", "index": MATCH}, "n_clicks"),
+    State({"type": "favorite-icon", "index": MATCH}, "className"),
+    prevent_initial_call=True,
+)
+def toggle_favorite(n_clicks, class_name):
+    song_name = dash.callback_context.triggered[0]["prop_id"].split(".")[0]
+    song_name = json.loads(song_name)["index"]
+    if song_name in favorites:
+        favorites.remove(song_name)
+        save_favorites(favorites)
+        return "bi bi-heart"
+    else:
+        favorites.append(song_name)
+        save_favorites(favorites)
+        return "bi bi-heart-fill text-danger"
+
+def toggle_dropdown(n_clicks, dropdown_style):
+    if dropdown_style["display"] == "none":
+        dropdown_style["display"] = "block"  # Show dropdown
+    else:
+        dropdown_style["display"] = "none"   # Hide dropdown
+    return dropdown_style
 
 @app.callback(
     Output("songs-list", "children"),
