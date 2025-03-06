@@ -173,7 +173,7 @@ html.Div([
     "justify-content": "space-between",
     "width": "90%",
     "margin": "auto"
-})
+}),
 
     # Now Playing Section
     html.Div([
