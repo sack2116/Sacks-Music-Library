@@ -8,6 +8,7 @@ from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, TIT2, TALB, TPE1, TCON, TYER, APIC
 from flask import send_file
 import glob
+from dash.exceptions import PreventUpdate
 # Define directories
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MUSIC_DIR = os.path.join(BASE_DIR, "MusicAlbums")
@@ -49,7 +50,7 @@ def extract_metadata(file_path):
     year = year_tag.text[0] if year_tag else "Unknown Year"
     lyrics = load_lyrics(file_path)
     return title, album, artist, genre, year, lyrics
-# Load lyrics from a text file alongside the MP3
+# Load lyrics from a .txt file if available
 def load_lyrics(file_path):
     lyrics_file = os.path.splitext(file_path)[0] + ".txt"
     if os.path.exists(lyrics_file):
@@ -61,7 +62,7 @@ def load_lyrics(file_path):
         with open(txt_files[0], "r", encoding="utf-8") as f:
             return f.read()
     return "No Lyrics Available"
-# Format duration (minutes:seconds)
+# Format duration as minutes:seconds
 def format_duration(file_path):
     audio = MP3(file_path)
     length = audio.info.length
@@ -75,8 +76,9 @@ def get_artwork_thumbnail(file_path):
         if isinstance(tag, APIC):  
             return f"data:image/jpeg;base64,{base64.b64encode(tag.data).decode()}"
     return os.path.join("assets", "default_artwork.jpg")
+# Load songs into dataframe
 df = load_songs(MUSIC_DIR)
-# Favorites functions
+# Favorites setup (JSON file)
 FAVORITES_FILE = "favorites.json"
 def load_favorites():
     if os.path.exists(FAVORITES_FILE):
@@ -96,19 +98,16 @@ app = dash.Dash(__name__,
                     'https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap',
                     '/assets/style.css'
                 ],
-                meta_tags=[
-                    {"name": "viewport", "content": "width=device-width, initial-scale=1.0"}
-                ])
+                meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1.0"}])
 server = app.server
-app.css.config.serve_locally = True
-# Serve music files from the MUSIC_DIR
+# Serve music files
 @app.server.route("/music/<path:song_path>")
 def serve_music(song_path):
     full_path = os.path.abspath(os.path.join(BASE_DIR, song_path))
     if os.path.exists(full_path):
         return send_file(full_path, mimetype="audio/mpeg")
     return "File Not Found", 404
-# App layout
+# App layout; note we use a dcc.Store ("current-song-index") to remember the selected song.
 app.layout = html.Div([
     html.H1([
         html.Span("🎵", style={"color": "#ff66c4", "font-size": "36px", "margin-right": "10px"}),
@@ -123,8 +122,8 @@ app.layout = html.Div([
                         n_clicks=0),
                 html.Div([
                     html.Button("Filter Dropdown 🔽", 
-                            id="filter-button", 
-                            className="filter-dropdown-button"),
+                                id="filter-button", 
+                                className="filter-dropdown-button"),
                     dcc.Dropdown(
                         id="filter-dropdown",
                         options=[ 
@@ -168,11 +167,13 @@ app.layout = html.Div([
                 }
             )
         ]),
-        html.Img(id="now-playing-artwork", src="/assets/default_artwork.jpg", style={"width": "120px", "height": "120px"}),
+        html.Img(id="now-playing-artwork", src="/assets/default_artwork.jpg",
+                 style={"width": "120px", "height": "120px"}),
         html.H2(id="now-playing-title", children="Select a Song"),
         html.P(id="now-playing-details", children=""),
         html.Div([
-            html.Audio(id="audio-player", controls=True, autoPlay=True, style={"width": "100%", "height": "80px"})
+            html.Audio(id="audio-player", controls=True, autoPlay=True,
+                       style={"width": "100%", "height": "80px"})
         ], style={
             "border": "2px solid #40E0D0",
             "border-radius": "10px",
@@ -184,15 +185,17 @@ app.layout = html.Div([
             html.Button("⏮️ Previous", id="prev-btn", className="control-button"),
             html.Button("❤️", id="fav-now-playing", n_clicks=0, className="favorite-button"),
             html.Button("⏭️ Next", id="next-btn", className="control-button")
-        ], style={"text-align": "center", "margin-top": "20px", "display": "flex", "justify-content": "center", "align-items": "center"}),
-        # Store components for state management
+        ], style={"text-align": "center", "margin-top": "20px",
+                  "display": "flex", "justify-content": "center", "align-items": "center"}),
+        # Stores for state management:
         dcc.Store(id="current-song-index", data=0),
         dcc.Store(id="favorites-store", data=favorites),
-        # Trigger for initial load
+        # A dummy store to trigger initial load:
         dcc.Store(id="initial-load-trigger", data=0)
     ], className="music-player")
 ])
-# Generate song list with separate clickable areas for song selection and favorite
+# SONG LIST CALLBACK
+# Generates the list of songs. The song selection button here does NOT use persistence.
 @app.callback(
     Output("songs-list", "children"),
     [Input("filter-dropdown", "value"),
@@ -210,9 +213,8 @@ def generate_song_list(filter_value, favorites, _):
     for i, row in filtered_df.iterrows():
         is_favorite = row['title'] in favorites
         heart_class = "favorite-button active" if is_favorite else "favorite-button"
-        # Use a flex container for two separate buttons:
         song_item = html.Div([
-            # Left side: song selection
+            # Left: song selection button
             html.Button(
                 f"{row['title']} - {row['album']} ({row['duration']})",
                 id={"type": "song-btn", "index": i},
@@ -220,7 +222,7 @@ def generate_song_list(filter_value, favorites, _):
                 className="song-button",
                 style={"flex": "1", "text-align": "left", "background": "none", "border": "none", "cursor": "pointer"}
             ),
-            # Right side: favorite (heart) button.
+            # Right: favorite heart button
             html.Button(
                 "❤️",
                 id={"type": "fav-btn", "index": i},
@@ -231,7 +233,7 @@ def generate_song_list(filter_value, favorites, _):
         ], className="song-item", style={"display": "flex", "align-items": "center", "margin-bottom": "5px"})
         songs_list.append(song_item)
     return songs_list
-# Toggle filter dropdown visibility
+# TOGGLE DROPDOWN CALLBACK
 @app.callback(
     Output("filter-dropdown", "style"),
     Input("filter-button", "n_clicks"),
@@ -243,55 +245,59 @@ def toggle_dropdown(n_clicks, dropdown_style):
         dropdown_style = dropdown_style.copy()
         dropdown_style["display"] = "block" if dropdown_style["display"] == "none" else "none"
     return dropdown_style
-# Handle song selection and navigation.
-# IMPORTANT: We add a guard so that if the callback is triggered due solely to a re-render
-# (e.g. when the favorites update resets the song-btn n_clicks to 0), it does nothing.
+# CALLBACK #1: Update the current song index based on song button or navigation clicks.
+@app.callback(
+    Output("current-song-index", "data"),
+    [Input({"type": "song-btn", "index": dash.dependencies.ALL}, "n_clicks"),
+     Input("prev-btn", "n_clicks"),
+     Input("next-btn", "n_clicks")],
+    State("current-song-index", "data"),
+    prevent_initial_call=True
+)
+def update_current_song_index(song_clicks, prev_clicks, next_clicks, current_index):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        raise PreventUpdate
+    triggered_prop = ctx.triggered[0]["prop_id"]
+    # Only update if a button with non-zero n_clicks triggered the callback
+    if "song-btn" in triggered_prop:
+        # Determine which song-btn was clicked by checking n_clicks values.
+        # NOTE: Even though re-rendering resets them to 0, we only act if one button actually got a new click.
+        for i, clicks in enumerate(song_clicks):
+            if clicks and clicks > 0:
+                return i
+        raise PreventUpdate
+    elif triggered_prop.startswith("prev-btn") and prev_clicks:
+        return (current_index - 1) % len(df)
+    elif triggered_prop.startswith("next-btn") and next_clicks:
+        return (current_index + 1) % len(df)
+    else:
+        raise PreventUpdate
+# CALLBACK #2: Update Now-Playing Display based on the current song index and favorites store.
 @app.callback(
     [Output("now-playing-title", "children"),
      Output("now-playing-artwork", "src"),
      Output("now-playing-details", "children"),
      Output("audio-player", "src"),
      Output("lyrics", "children"),
-     Output("current-song-index", "data"),
      Output("fav-now-playing", "className")],
-    [Input({"type": "song-btn", "index": dash.dependencies.ALL}, "n_clicks"),
-     Input("prev-btn", "n_clicks"),
-     Input("next-btn", "n_clicks")],
-    [State("current-song-index", "data"),
-     State("favorites-store", "data")],
-    prevent_initial_call=True
+    [Input("current-song-index", "data"),
+     Input("favorites-store", "data")]
 )
-def update_now_playing(song_clicks, prev_clicks, next_clicks, current_index, favorites):
-    # If no valid button click has occurred, do not update anything.
-    if (not any(click for click in song_clicks if click) and (prev_clicks is None or prev_clicks == 0)
-        and (next_clicks is None or next_clicks == 0)):
-        from dash.exceptions import PreventUpdate
+def update_now_playing_display(current_index, favorites):
+    if current_index is None or current_index >= len(df):
         raise PreventUpdate
-    ctx = dash.callback_context
-    triggered_prop = ctx.triggered[0]["prop_id"]
-    triggered_id = triggered_prop.split(".")[0]
-    if "song-btn" in triggered_id:
-        index_dict = json.loads(triggered_id)
-        current_index = index_dict["index"]
-    elif triggered_id == "prev-btn" and prev_clicks:
-        current_index = (current_index - 1) % len(df)
-    elif triggered_id == "next-btn" and next_clicks:
-        current_index = (current_index + 1) % len(df)
     song = df.iloc[current_index]
     song_url = f"/music/{song['file_path']}"
-    # Check favorite status for the now-playing heart button
     is_favorite = song["title"] in favorites
     heart_class = "favorite-button active" if is_favorite else "favorite-button"
-    return (
-        song["title"], 
-        song["artwork"], 
-        f"Album: {song['album']} | Artist: {song['artist']} | Year: {song['year']} | Length: {song['duration']}",
-        song_url,
-        song["lyrics"],
-        current_index,
-        heart_class
-    )
-# Update favorite button class in the song list without affecting the current song
+    return (song["title"],
+            song["artwork"],
+            f"Album: {song['album']} | Artist: {song['artist']} | Year: {song['year']} | Length: {song['duration']}",
+            song_url,
+            song["lyrics"],
+            heart_class)
+# Update favorite button class in the song list (does not affect currently playing song)
 @app.callback(
     Output({"type": "fav-btn", "index": dash.dependencies.MATCH}, "className"),
     Input({"type": "fav-btn", "index": dash.dependencies.MATCH}, "n_clicks"),
@@ -303,11 +309,8 @@ def update_now_playing(song_clicks, prev_clicks, next_clicks, current_index, fav
 def update_favorite_button_class(n_clicks, current_class, favorites, button_id):
     if not n_clicks:
         return current_class
-    if "active" in current_class:
-        return "favorite-button"
-    else:
-        return "favorite-button active"
-# Update the favorites store when a favorite button is clicked either in the list or in the now‐playing section.
+    return "favorite-button" if "active" in current_class else "favorite-button active"
+# Update the favorites store when a favorite button is clicked (list view or now-playing)
 @app.callback(
     Output("favorites-store", "data"),
     [Input({"type": "fav-btn", "index": dash.dependencies.ALL}, "n_clicks"),
@@ -323,14 +326,14 @@ def update_favorites_store(n_clicks_list, now_playing_clicks, button_ids, favori
         return favorites
     triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
     new_favorites = favorites.copy()
-    # Handle now-playing favorite button
+    # Now-playing heart button
     if triggered_id == "fav-now-playing" and now_playing_clicks:
         song_title = df.iloc[current_index]["title"]
         if song_title in new_favorites:
             new_favorites.remove(song_title)
         else:
             new_favorites.append(song_title)
-    # Handle list view favorite buttons
+    # List view favorite buttons
     elif "fav-btn" in triggered_id:
         button_idx = json.loads(triggered_id)["index"]
         for i, button_id in enumerate(button_ids):
@@ -343,7 +346,7 @@ def update_favorites_store(n_clicks_list, now_playing_clicks, button_ids, favori
                 break
     save_favorites(new_favorites)
     return new_favorites
-# Update now-playing heart button based on favorites store
+# Update now-playing favorite button appearance based on favorites store.
 @app.callback(
     Output("fav-now-playing", "className", allow_duplicate=True),
     Input("favorites-store", "data"),
@@ -354,7 +357,6 @@ def update_now_playing_favorite_status(favorites, current_index):
     if current_index is None or current_index >= len(df):
         return "favorite-button"
     song_title = df.iloc[current_index]["title"]
-    is_favorite = song_title in favorites
-    return "favorite-button active" if is_favorite else "favorite-button"
+    return "favorite-button active" if song_title in favorites else "favorite-button"
 if __name__ == '__main__':
     app.run_server(debug=True)
