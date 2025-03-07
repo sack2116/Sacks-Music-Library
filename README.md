@@ -1,6 +1,6 @@
 # 🎵 Music Library App (Dash & Flask)  
 
-A sleek and interactive **music library app** built with **Dash & Gradio**, featuring **real-time folder monitoring, metadata extraction, waveform visualization, and a favorites system**.  
+A sleek and interactive **music library app** built with **Dash & Flask**, featuring **real-time folder monitoring, metadata extraction, waveform visualization, and a favorites system**.  
 
 ## 🚀 Features  
 - **🎼 Music Player** – Play songs with album artwork, metadata, and lyrics display.  
