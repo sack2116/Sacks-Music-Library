@@ -216,31 +216,30 @@ app.layout = html.Div([
         # Store components for state management
         dcc.Store(id="current-song-index", data=0),
         dcc.Store(id="favorites-store", data=favorites),
+        dcc.Store(id="current-song-info", data=None),  # New store to maintain current song info
         
         # Add a trigger for initial load
-        dcc.Store(id="initial-load-trigger", data=0),
-        
-        # Add a store for full song list to allow filtering without changing indices
-        dcc.Store(id="full-song-list-store", data=df.to_dict('records'))
+        dcc.Store(id="initial-load-trigger", data=0)
     ], className="music-player")
 ])
 
-# Generate song list but maintain indices based on the full dataframe
+# Generate song list - now responds to initial-load-trigger as well
 @app.callback(
     Output("songs-list", "children"),
     [Input("filter-dropdown", "value"),
      Input("favorites-store", "data"),
-     Input("initial-load-trigger", "data")]
+     Input("initial-load-trigger", "data")]  # Added initial load trigger
 )
 def generate_song_list(filter_value, favorites, _):
-    songs_list = []
+    if filter_value == "favorites":
+        filtered_df = df[df['title'].isin(favorites)]
+    elif filter_value == "by_album":
+        filtered_df = df.sort_values("album")
+    else:
+        filtered_df = df
     
-    # Apply filter but keep the original indices
-    for i, row in df.iterrows():
-        # Skip songs that don't match the filter
-        if filter_value == "favorites" and row['title'] not in favorites:
-            continue
-        
+    songs_list = []
+    for i, row in filtered_df.iterrows():
         is_favorite = row['title'] in favorites
         heart_class = "favorite-button active" if is_favorite else "favorite-button"
         
@@ -248,13 +247,13 @@ def generate_song_list(filter_value, favorites, _):
             html.Img(src=row['artwork'], className="song-artwork"),
             html.Button(
                 f"{row['title']} - {row['album']} ({row['duration']})",
-                id={"type": "song-btn", "index": i},  # Keep the original index
+                id={"type": "song-btn", "index": i},
                 n_clicks=0,
                 className="song-button"
             ),
             html.Button(
                 "❤️", 
-                id={"type": "fav-btn", "index": i},  # Keep the original index
+                id={"type": "fav-btn", "index": i},
                 n_clicks=0,
                 className=heart_class
             )
@@ -264,7 +263,7 @@ def generate_song_list(filter_value, favorites, _):
     
     return songs_list
 
-# Toggle dropdown visibility
+# Toggle dropdown visibility - FIXED to prevent song playback interruption
 @app.callback(
     Output("filter-dropdown", "style"),
     Input("filter-button", "n_clicks"),
@@ -277,7 +276,28 @@ def toggle_dropdown(n_clicks, dropdown_style):
         dropdown_style["display"] = "block" if dropdown_style["display"] == "none" else "none"
     return dropdown_style
 
-# Handle song selection and player controls
+# Save current song info when it changes
+@app.callback(
+    Output("current-song-info", "data"),
+    [Input("now-playing-title", "children"),
+     Input("now-playing-artwork", "src"),
+     Input("now-playing-details", "children"),
+     Input("audio-player", "src"),
+     Input("lyrics", "children"),
+     Input("current-song-index", "data")],
+    prevent_initial_call=True
+)
+def save_current_song_info(title, artwork, details, audio_src, lyrics, index):
+    return {
+        "title": title,
+        "artwork": artwork,
+        "details": details,
+        "audio_src": audio_src,
+        "lyrics": lyrics,
+        "index": index
+    }
+
+# Handle song selection and player controls - FIXED to maintain state during filtering
 @app.callback(
     [Output("now-playing-title", "children"),
      Output("now-playing-artwork", "src"),
@@ -290,16 +310,42 @@ def toggle_dropdown(n_clicks, dropdown_style):
      Input("prev-btn", "n_clicks"),
      Input("next-btn", "n_clicks")],
     [State("current-song-index", "data"),
-     State("favorites-store", "data")],
+     State("favorites-store", "data"),
+     State("current-song-info", "data")],
     prevent_initial_call=True
 )
-def update_now_playing(song_clicks, prev_clicks, next_clicks, current_index, favorites):
+def update_now_playing(song_clicks, prev_clicks, next_clicks, current_index, favorites, current_song_info):
     ctx = dash.callback_context
     
     if not ctx.triggered:
+        # Return current song info if available, otherwise default values
+        if current_song_info:
+            return (
+                current_song_info["title"],
+                current_song_info["artwork"],
+                current_song_info["details"],
+                current_song_info["audio_src"],
+                current_song_info["lyrics"],
+                current_song_info["index"],
+                "favorite-button active" if df.iloc[current_song_info["index"]]["title"] in favorites else "favorite-button"
+            )
         return "Select a Song", "/assets/default_artwork.jpg", "", "", "No Lyrics Available", 0, "favorite-button"
     
     triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    
+    # If the trigger is not a song selection or control button, maintain current state
+    if "song-btn" not in triggered_id and triggered_id != "prev-btn" and triggered_id != "next-btn":
+        if current_song_info:
+            return (
+                current_song_info["title"],
+                current_song_info["artwork"],
+                current_song_info["details"],
+                current_song_info["audio_src"],
+                current_song_info["lyrics"],
+                current_song_info["index"],
+                "favorite-button active" if df.iloc[current_song_info["index"]]["title"] in favorites else "favorite-button"
+            )
+        return "Select a Song", "/assets/default_artwork.jpg", "", "", "No Lyrics Available", 0, "favorite-button"
     
     if "song-btn" in triggered_id:
         # Extract the index from the JSON string
