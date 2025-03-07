@@ -218,27 +218,29 @@ app.layout = html.Div([
         dcc.Store(id="favorites-store", data=favorites),
         
         # Add a trigger for initial load
-        dcc.Store(id="initial-load-trigger", data=0)
+        dcc.Store(id="initial-load-trigger", data=0),
+        
+        # Add a store for full song list to allow filtering without changing indices
+        dcc.Store(id="full-song-list-store", data=df.to_dict('records'))
     ], className="music-player")
 ])
 
-# Generate song list - now responds to initial-load-trigger as well
+# Generate song list but maintain indices based on the full dataframe
 @app.callback(
     Output("songs-list", "children"),
     [Input("filter-dropdown", "value"),
      Input("favorites-store", "data"),
-     Input("initial-load-trigger", "data")]  # Added initial load trigger
+     Input("initial-load-trigger", "data")]
 )
 def generate_song_list(filter_value, favorites, _):
-    if filter_value == "favorites":
-        filtered_df = df[df['title'].isin(favorites)]
-    elif filter_value == "by_album":
-        filtered_df = df.sort_values("album")
-    else:
-        filtered_df = df
-    
     songs_list = []
-    for i, row in filtered_df.iterrows():
+    
+    # Apply filter but keep the original indices
+    for i, row in df.iterrows():
+        # Skip songs that don't match the filter
+        if filter_value == "favorites" and row['title'] not in favorites:
+            continue
+        
         is_favorite = row['title'] in favorites
         heart_class = "favorite-button active" if is_favorite else "favorite-button"
         
@@ -246,13 +248,13 @@ def generate_song_list(filter_value, favorites, _):
             html.Img(src=row['artwork'], className="song-artwork"),
             html.Button(
                 f"{row['title']} - {row['album']} ({row['duration']})",
-                id={"type": "song-btn", "index": i},
+                id={"type": "song-btn", "index": i},  # Keep the original index
                 n_clicks=0,
                 className="song-button"
             ),
             html.Button(
                 "❤️", 
-                id={"type": "fav-btn", "index": i},
+                id={"type": "fav-btn", "index": i},  # Keep the original index
                 n_clicks=0,
                 className=heart_class
             )
