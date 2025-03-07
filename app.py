@@ -325,7 +325,7 @@ def update_now_playing(song_clicks, prev_clicks, next_clicks, current_index, fav
         heart_class
     )
 
-# FIX: Update favorite button class without redirecting/changing the song
+# Fixed: Update favorite button class without affecting playing song
 @app.callback(
     Output({"type": "fav-btn", "index": dash.dependencies.MATCH}, "className"),
     Input({"type": "fav-btn", "index": dash.dependencies.MATCH}, "n_clicks"),
@@ -344,74 +344,72 @@ def update_favorite_button_class(n_clicks, current_class, favorites, button_id):
     else:
         return "favorite-button active"
 
-
-# Separate callback to update the favorites store
+# Fixed: Separate callback to update the favorites store without affecting playback
 @app.callback(
     Output("favorites-store", "data"),
-    Input({"type": "fav-btn", "index": dash.dependencies.ALL}, "n_clicks"),
+    [Input({"type": "fav-btn", "index": dash.dependencies.ALL}, "n_clicks"),
+     Input("fav-now-playing", "n_clicks")],
     [State({"type": "fav-btn", "index": dash.dependencies.ALL}, "id"),
-     State("favorites-store", "data")],
+     State("favorites-store", "data"),
+     State("current-song-index", "data")],
     prevent_initial_call=True
 )
-def update_favorites_store(n_clicks_list, button_ids, favorites):
+def update_favorites_store(n_clicks_list, now_playing_clicks, button_ids, favorites, current_index):
     ctx = dash.callback_context
     if not ctx.triggered:
         return favorites
     
-    # Get the button that was clicked
     triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
-    button_idx = json.loads(triggered_id)["index"]
-    
-    # Find the position in the list that corresponds to this button
-    clicked_button_position = None
-    for i, button_id in enumerate(button_ids):
-        if button_id["index"] == button_idx:
-            clicked_button_position = i
-            break
-    
-    if clicked_button_position is None or n_clicks_list[clicked_button_position] == 0:
-        return favorites
-    
-    song_title = df.iloc[button_idx]["title"]
     new_favorites = favorites.copy()
     
-    if song_title in new_favorites:
-        new_favorites.remove(song_title)
-    else:
-        new_favorites.append(song_title)
+    # Handle "fav-now-playing" button
+    if triggered_id == "fav-now-playing" and now_playing_clicks:
+        song_title = df.iloc[current_index]["title"]
+        
+        if song_title in new_favorites:
+            new_favorites.remove(song_title)
+        else:
+            new_favorites.append(song_title)
+    
+    # Handle list favorite buttons
+    elif "fav-btn" in triggered_id:
+        button_idx = json.loads(triggered_id)["index"]
+        
+        # Find the position in the list that corresponds to this button
+        clicked_button_position = None
+        for i, button_id in enumerate(button_ids):
+            if button_id["index"] == button_idx:
+                clicked_button_position = i
+                break
+        
+        if clicked_button_position is not None and n_clicks_list[clicked_button_position] > 0:
+            song_title = df.iloc[button_idx]["title"]
+            
+            if song_title in new_favorites:
+                new_favorites.remove(song_title)
+            else:
+                new_favorites.append(song_title)
     
     # Save to file
     save_favorites(new_favorites)
     
     return new_favorites
 
-# Handle "favorite now playing" button
+# Fixed: Update only the now-playing favorite button class
 @app.callback(
-    [Output("fav-now-playing", "className", allow_duplicate=True),
-     Output("favorites-store", "data", allow_duplicate=True)],
-    Input("fav-now-playing", "n_clicks"),
-    [State("current-song-index", "data"),
-     State("favorites-store", "data")],
+    Output("fav-now-playing", "className", allow_duplicate=True),
+    Input("favorites-store", "data"),
+    State("current-song-index", "data"),
     prevent_initial_call=True
 )
-def toggle_now_playing_favorite(n_clicks, current_index, favorites):
-    if not n_clicks:
-        return dash.no_update, dash.no_update
+def update_now_playing_favorite_status(favorites, current_index):
+    if current_index is None or current_index >= len(df):
+        return "favorite-button"
     
     song_title = df.iloc[current_index]["title"]
-    new_favorites = favorites.copy()
+    is_favorite = song_title in favorites
     
-    if song_title in new_favorites:
-        new_favorites.remove(song_title)
-        new_class = "favorite-button"
-    else:
-        new_favorites.append(song_title)
-        new_class = "favorite-button active"
-    
-    # Save to file
-    save_favorites(new_favorites)
-    
-    return new_class, new_favorites
+    return "favorite-button active" if is_favorite else "favorite-button"
 
 if __name__ == '__main__':
     app.run_server(debug=True)
