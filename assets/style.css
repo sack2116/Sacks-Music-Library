@@ -254,6 +254,50 @@ h1 {
     transform: translateY(-2px);
 }
 
+/* Fix for dropdown options */
+.Select-menu-outer {
+    background-color: #333 !important;
+    color: white !important;
+}
+
+.VirtualizedSelectOption {
+    background-color: #333 !important;
+    color: white !important;
+}
+
+.VirtualizedSelectFocusedOption {
+    background-color: #4A90E2 !important;
+}
+
+/* Custom styling for the dropdown */
+#filter-dropdown .Select-control {
+    background-color: #333;
+    border-color: #76B9F0;
+    color: white;
+}
+
+#filter-dropdown .Select-value-label {
+    color: white !important;
+}
+
+#filter-dropdown .Select-menu-outer {
+    background-color: #333;
+    border-color: #76B9F0;
+}
+
+#filter-dropdown .Select-option {
+    background-color: #333;
+    color: white;
+}
+
+#filter-dropdown .Select-option.is-focused {
+    background-color: #4A90E2;
+}
+
+#filter-dropdown .Select-option.is-selected {
+    background-color: #2eb8b8;
+}
+
 /* Now Playing Section */
 .music-player {
     background: rgba(0, 0, 0, 0.9);
@@ -409,9 +453,7 @@ audio::-webkit-media-controls-timeline {
     }
     
     #background-video {
-        width: 200px;
-        height: 160px;
-        top: -40px;
+        display: none; /* Hide video on mobile devices */
     }
 }
 
@@ -439,9 +481,7 @@ audio::-webkit-media-controls-timeline {
     }
     
     #background-video {
-        width: 150px;
-        height: 120px;
-        top: -30px;
+        display: none; /* Ensure video is hidden on very small screens too */
     }
     
     .control-button {

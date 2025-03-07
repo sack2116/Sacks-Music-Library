@@ -325,7 +325,7 @@ def update_now_playing(song_clicks, prev_clicks, next_clicks, current_index, fav
         heart_class
     )
 
-# FIXED: Split the callback to handle song-specific favorite buttons separately from updating the favorites store
+# FIX: Update favorite button class without redirecting/changing the song
 @app.callback(
     Output({"type": "fav-btn", "index": dash.dependencies.MATCH}, "className"),
     Input({"type": "fav-btn", "index": dash.dependencies.MATCH}, "n_clicks"),
@@ -338,13 +338,12 @@ def update_favorite_button_class(n_clicks, current_class, favorites, button_id):
     if not n_clicks:
         return current_class
     
-    song_index = button_id["index"]
-    song_title = df.iloc[song_index]["title"]
-    
-    if song_title in favorites:
+    # Toggle the class
+    if "active" in current_class:
         return "favorite-button"
     else:
         return "favorite-button active"
+
 
 # Separate callback to update the favorites store
 @app.callback(
