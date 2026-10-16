@@ -50,7 +50,7 @@ A sleek and interactive **music library app** built with **Dash & Flask**, featu
 ---
 
 ## 🔗 Share Site (GitHub Pages)  
-Share links open a page that plays only that song (no albums), hosted on GitHub Pages so it is always online and social media previews load instantly (no Render wake-up wait). The share site has no library page: its home page and unknown addresses open the featured song.  
+Share links open a page that plays only that song (no albums), hosted on GitHub Pages so it is always online and social media previews load instantly (no Render wake-up wait). The share site has no library page: its home page and unknown addresses send visitors back to the song they were shared (or the featured song).  
 - `build_static.py` builds it from `MusicAlbums` into `site/` (one share page per song at `/s/<song>/`).  
 - `.github/workflows/pages.yml` rebuilds and publishes it to GitHub Pages on every push to `main`.  
 - Album names, order, covers and the featured song are set at the top of `library.py`.  

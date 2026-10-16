@@ -60,6 +60,8 @@
             });
         }
     }
+    // Remember this song so the site's home page and unknown addresses bring the visitor back to it
+    try { localStorage.setItem("sacks-last-song", "{{SONG_ID}}"); } catch (err) { /* storage blocked */ }
     audio.addEventListener("play", () => showTapToPlay(false));
     document.addEventListener("pointerdown", (e) => {
         if (waitingForTap && !e.target.closest("#audio-player")) tryPlay();

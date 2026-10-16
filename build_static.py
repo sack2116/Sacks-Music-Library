@@ -1,7 +1,7 @@
 """Build the static share site (one page per song) from the MusicAlbums folder.
 
-Each share page plays only its own song; the site has no page that lists the library, and its home
-page (and any unknown address) opens the featured song instead.
+Each share page plays only its own song; the site has no page that lists the library. Its home page
+and any unknown address send visitors back to the last song they opened (or the featured song).
 
 The output folder can be hosted on any static host (GitHub Pages, Cloudflare Pages, Netlify), which
 stays online all the time, so share links and social media previews load instantly.
@@ -10,6 +10,7 @@ stays online all the time, so share links and social media previews load instant
     python -m http.server -d site 8000      # preview at http://localhost:8000
 """
 import os
+import json
 import shutil
 import argparse
 import html
@@ -70,6 +71,7 @@ def write_share_page(out_dir, site_url, song):
     with open(os.path.join(SOURCE_DIR, "song.html"), encoding="utf-8") as f:
         page = f.read()
     values = {
+        "SONG_ID": song["id"],
         "PAGE_TITLE": f"{song['title']} - {song['artist']}",
         "DESCRIPTION": f"Listen to \"{song['title']}\" from the album {song['album']}",
         "SITE_TITLE": SITE_TITLE,
@@ -90,16 +92,34 @@ def write_share_page(out_dir, site_url, song):
         f.write(page)
 
 
-def write_redirect(path, target):
-    """Page that sends visitors to target (used for the home page and unknown addresses)."""
-    target = html.escape(target)
+def write_redirect(path, songs_base, featured):
+    """Home page / unknown address: send the visitor back to the last song they opened from a share link
+    (remembered in their browser), or to the featured song. songs_base is where the /s/ pages live."""
+    fallback = html.escape(f"{songs_base}{quote(featured)}/")
     page = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <title>{html.escape(SITE_TITLE)}</title>
 <meta name="robots" content="noindex">
-<meta http-equiv="refresh" content="0; url={target}">
+<script>
+(function () {{
+    var songsBase = {json.dumps(songs_base)};
+    var song = {json.dumps(featured)};
+    try {{
+        var last = localStorage.getItem("sacks-last-song");
+        var here = location.pathname.replace(/\\/$/, "");
+        // Ignore it if this page is already that song's address (a song that was removed), to avoid a loop
+        if (last && /^[a-z0-9-]+$/.test(last) && here.slice(-("/s/" + last).length) !== "/s/" + last) {{
+            song = last;
+        }} else if (last) {{
+            localStorage.removeItem("sacks-last-song");
+        }}
+    }} catch (err) {{ /* storage blocked: use the featured song */ }}
+    location.replace(songsBase + song + "/");
+}})();
+</script>
+<noscript><meta http-equiv="refresh" content="0; url={fallback}"></noscript>
 </head>
 <body style="background:#000"></body>
 </html>"""
@@ -122,10 +142,11 @@ def main():
     songs = copy_song_files(out_dir, album_list)
     for song in songs:
         write_share_page(out_dir, site_url, song)
-    # No library page: the home page and any unknown address open the featured song
+    # No library page: the home page and any unknown address open the visitor's last shared song
+    # (or the featured song)
     featured = next((s["id"] for s in songs if s["featured"]), songs[0]["id"])
-    write_redirect(os.path.join(out_dir, "index.html"), f"s/{quote(featured)}/")
-    write_redirect(os.path.join(out_dir, "404.html"), f"{site_url}/s/{quote(featured)}/")
+    write_redirect(os.path.join(out_dir, "index.html"), "s/", featured)
+    write_redirect(os.path.join(out_dir, "404.html"), f"{site_url}/s/", featured)
     print(f"Built share pages for {len(songs)} songs into {out_dir}")
     print(f"Share links look like {site_url}/s/{featured}/")
 
