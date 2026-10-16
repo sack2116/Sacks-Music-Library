@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{PAGE_TITLE}}</title>
+<meta name="description" content="{{DESCRIPTION}}">
+<meta property="og:type" content="music.song">
+<meta property="og:site_name" content="{{SITE_TITLE}}">
+<meta property="og:title" content="{{PAGE_TITLE}}">
+<meta property="og:description" content="{{DESCRIPTION}}">
+<meta property="og:url" content="{{PAGE_URL}}">
+<meta property="og:image" content="{{IMAGE_URL}}">
+<meta property="og:image:alt" content="{{SONG_TITLE}} cover art">
+<meta property="og:audio" content="{{AUDIO_URL}}">
+<meta property="og:audio:type" content="audio/mpeg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{PAGE_TITLE}}">
+<meta name="twitter:description" content="{{DESCRIPTION}}">
+<meta name="twitter:image" content="{{IMAGE_URL}}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
+<link rel="stylesheet" href="../../assets/style.css">
+<link rel="stylesheet" href="../../assets/static.css">
+</head>
+<body class="single-song">
+<div class="music-player single-song-card">
+    <img id="now-playing-artwork" class="single-song-art" src="{{ART}}" alt="{{SONG_TITLE}} cover art">
+    <h2 id="now-playing-title">{{SONG_TITLE}}</h2>
+    <p id="now-playing-details">{{DETAILS}}</p>
+    <button id="tap-to-play" class="control-button tap-to-play">▶ Tap to play</button>
+    <div class="audio-frame">
+        <audio id="audio-player" controls preload="auto" autoplay src="{{AUDIO}}"></audio>
+    </div>
+</div>
+
+<div class="lyrics-container single-song-lyrics">
+    <h3 class="section-heading">Lyrics</h3>
+    <div class="lyrics-content">{{LYRICS}}</div>
+</div>
+
+<p class="copyright">All music and content are original compositions © Isaac D.</p>
+
+<script>
+// Browsers only allow audio to start by itself after the visitor has interacted with the page.
+// If autoplay is blocked, show "Tap to play" and start on the visitor's first tap or click.
+(function () {
+    const audio = document.getElementById("audio-player");
+    const tap = document.getElementById("tap-to-play");
+    let waitingForTap = false;
+    function showTapToPlay(show) {
+        waitingForTap = show;
+        tap.style.display = show ? "inline-block" : "none";
+    }
+    function tryPlay() {
+        const attempt = audio.play();
+        if (attempt && attempt.then) {
+            attempt.then(() => showTapToPlay(false)).catch((err) => {
+                if (err.name === "NotAllowedError") showTapToPlay(true);
+            });
+        }
+    }
+    audio.addEventListener("play", () => showTapToPlay(false));
+    document.addEventListener("pointerdown", (e) => {
+        if (waitingForTap && !e.target.closest("#audio-player")) tryPlay();
+    }, true);
+    tryPlay();
+})();
+</script>
+</body>
+</html>

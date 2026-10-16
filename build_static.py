@@ -83,38 +83,25 @@ def write_index(out_dir, site_url, library_data, og_image):
 
 
 def write_share_page(out_dir, site_url, song):
-    """Small page per song: link previews (Facebook, WhatsApp, X...) read its tags, visitors go to the player."""
-    player_url = f"../../?song={quote(song['id'])}"
-    title = html.escape(f"{song['title']} - {song['artist']}")
-    description = html.escape(f"Listen to \"{song['title']}\" from the album {song['album']}")
-    image = html.escape(f"{site_url}/{song['art']}") if song["art"] else ""
-    page = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<title>{title}</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="{description}">
-<meta property="og:type" content="music.song">
-<meta property="og:site_name" content="{html.escape(SITE_TITLE)}">
-<meta property="og:title" content="{title}">
-<meta property="og:description" content="{description}">
-<meta property="og:url" content="{html.escape(site_url)}/s/{quote(song['id'])}/">
-<meta property="og:image" content="{image}">
-<meta property="og:image:alt" content="{html.escape(song['title'])} cover art">
-<meta property="og:audio" content="{html.escape(site_url)}/{song['audio']}">
-<meta property="og:audio:type" content="audio/mpeg">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="{title}">
-<meta name="twitter:description" content="{description}">
-<meta name="twitter:image" content="{image}">
-<meta http-equiv="refresh" content="0; url={player_url}">
-</head>
-<body style="background:#000;color:#fff;font-family:Arial,sans-serif;text-align:center;padding-top:40px">
-<p>Opening <a style="color:#40E0D0" href="{player_url}">{html.escape(song['title'])}</a>...</p>
-<script>window.location.replace({json.dumps(player_url)});</script>
-</body>
-</html>"""
+    """Share page for one song: plays just that song (no albums). Link previews (Facebook, WhatsApp, X...)
+    read its tags."""
+    with open(os.path.join(SOURCE_DIR, "song.html"), encoding="utf-8") as f:
+        page = f.read()
+    values = {
+        "PAGE_TITLE": f"{song['title']} - {song['artist']}",
+        "DESCRIPTION": f"Listen to \"{song['title']}\" from the album {song['album']}",
+        "SITE_TITLE": SITE_TITLE,
+        "PAGE_URL": f"{site_url}/s/{quote(song['id'])}/",
+        "IMAGE_URL": f"{site_url}/{song['art']}" if song["art"] else "",
+        "AUDIO_URL": f"{site_url}/{song['audio']}",
+        "SONG_TITLE": song["title"],
+        "DETAILS": f"Album: {song['album']} | Artist: {song['artist']} | Year: {song['year']} | Length: {song['duration']}",
+        "ART": f"../../{song['art']}" if song["art"] else "",
+        "AUDIO": f"../../{song['audio']}",
+        "LYRICS": song["lyrics"],
+    }
+    for key, value in values.items():
+        page = page.replace("{{" + key + "}}", html.escape(value))
     song_dir = os.path.join(out_dir, "s", song["id"])
     os.makedirs(song_dir)
     with open(os.path.join(song_dir, "index.html"), "w", encoding="utf-8") as f:
