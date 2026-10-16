@@ -110,11 +110,14 @@ Then open http://localhost:8000/s/mi-cielo/
 
 ---
 
-## 🎯 To-Do
-- ✅ Expandable albums with the featured song playing on launch.
-- ✅ Previous / Next within the selected album.
-- ✅ Single-song share links with social media previews.
-- ✅ Two-color favorite hearts.
+## ✅ Recently Added
+- Expandable albums with the featured song playing on launch.
+- Previous / Next within the selected album.
+- Single-song share links with social media previews.
+- Two-color favorite hearts.
+
+## 🎯 To-Do (Future Work)
+- ⏳ **Private albums with a PIN** – keep certain albums hidden and make them accessible only by entering a PIN.
 - ⏳ Larger cover art for albums whose covers are 200×200 (better social previews).
 - ⏳ Add **more themes and customization options**.
 
