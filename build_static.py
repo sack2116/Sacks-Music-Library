@@ -1,4 +1,7 @@
-"""Build the static share site (player + one share page per song) from the MusicAlbums folder.
+"""Build the static share site (one page per song) from the MusicAlbums folder.
+
+Each share page plays only its own song; the site has no page that lists the library, and its home
+page (and any unknown address) opens the featured song instead.
 
 The output folder can be hosted on any static host (GitHub Pages, Cloudflare Pages, Netlify), which
 stays online all the time, so share links and social media previews load instantly.
@@ -7,7 +10,6 @@ stays online all the time, so share links and social media previews load instant
     python -m http.server -d site 8000      # preview at http://localhost:8000
 """
 import os
-import json
 import shutil
 import argparse
 import html
@@ -26,7 +28,7 @@ def prepare_output(out_dir):
         if not os.path.exists(os.path.join(out_dir, BUILD_MARKER)):
             raise SystemExit(f"{out_dir} exists and was not made by build_static.py; choose another --out folder")
         shutil.rmtree(out_dir)
-    for sub in ("assets", "media", "art", "covers", "s"):
+    for sub in ("assets", "media", "art", "s"):
         os.makedirs(os.path.join(out_dir, sub))
     open(os.path.join(out_dir, BUILD_MARKER), "w").close()
     open(os.path.join(out_dir, ".nojekyll"), "w").close()  # serve files as-is on GitHub Pages
@@ -37,49 +39,29 @@ def copy_assets(out_dir):
         css = f.read().replace('url("/assets/Background.png")', 'url("Background.png")')
     with open(os.path.join(out_dir, "assets", "style.css"), "w", encoding="utf-8") as f:
         f.write(css)
-    for name in ("Background.png", "Sacks.mp4"):
-        shutil.copy2(os.path.join(ASSETS_DIR, name), os.path.join(out_dir, "assets", name))
+    shutil.copy2(os.path.join(ASSETS_DIR, "Background.png"), os.path.join(out_dir, "assets", "Background.png"))
     shutil.copy2(os.path.join(SOURCE_DIR, "static.css"), os.path.join(out_dir, "assets", "static.css"))
-    shutil.copy2(os.path.join(SOURCE_DIR, "player.js"), os.path.join(out_dir, "assets", "player.js"))
 
 
-def build_library(out_dir, album_list):
-    """Copy songs, artwork and covers; return the song data the player and share pages use."""
-    albums = []
+def copy_song_files(out_dir, album_list):
+    """Copy each song's audio and artwork (album cover when the MP3 has none); return the songs."""
+    songs = []
     for album in album_list:
-        cover = None
         cover_path = album_cover_path(album)
-        if cover_path:
-            cover = f"covers/{album['key']}{os.path.splitext(cover_path)[1].lower()}"
-            shutil.copy2(cover_path, os.path.join(out_dir, cover))
-        songs = []
         for song in album["songs"]:
-            audio = f"media/{song['id']}.mp3"
-            shutil.copy2(song["file_path"], os.path.join(out_dir, audio))
-            art = cover
+            song = dict(song, audio=f"media/{song['id']}.mp3", art=None)
+            shutil.copy2(song["file_path"], os.path.join(out_dir, song["audio"]))
             artwork = get_artwork(song["file_path"])
             if artwork:
                 data, mime = artwork
-                art = f"art/{song['id']}{IMAGE_EXTENSIONS.get(mime.lower(), '.jpg')}"
-                with open(os.path.join(out_dir, art), "wb") as f:
+                song["art"] = f"art/{song['id']}{IMAGE_EXTENSIONS.get(mime.lower(), '.jpg')}"
+                with open(os.path.join(out_dir, song["art"]), "wb") as f:
                     f.write(data)
-            songs.append({key: song[key] for key in ("id", "title", "album", "album_key", "artist", "year",
-                                                      "duration", "lyrics")} | {"audio": audio, "art": art})
-        albums.append({"key": album["key"], "name": album["name"], "cover": cover, "songs": songs})
-    return albums
-
-
-def write_index(out_dir, site_url, library_data, og_image):
-    with open(os.path.join(SOURCE_DIR, "index.html"), encoding="utf-8") as f:
-        page = f.read()
-    # Keep "</script>" inside lyrics from ending the data block
-    library_json = json.dumps(library_data, ensure_ascii=False).replace("</", "<\\/")
-    page = (page.replace("{{SITE_TITLE}}", html.escape(SITE_TITLE))
-                .replace("{{SITE_URL}}", html.escape(site_url))
-                .replace("{{OG_IMAGE}}", html.escape(og_image))
-                .replace("{{LIBRARY_JSON}}", library_json))
-    with open(os.path.join(out_dir, "index.html"), "w", encoding="utf-8") as f:
-        f.write(page)
+            elif cover_path:
+                song["art"] = f"art/{song['id']}{os.path.splitext(cover_path)[1].lower()}"
+                shutil.copy2(cover_path, os.path.join(out_dir, song["art"]))
+            songs.append(song)
+    return songs
 
 
 def write_share_page(out_dir, site_url, song):
@@ -108,6 +90,23 @@ def write_share_page(out_dir, site_url, song):
         f.write(page)
 
 
+def write_redirect(path, target):
+    """Page that sends visitors to target (used for the home page and unknown addresses)."""
+    target = html.escape(target)
+    page = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{html.escape(SITE_TITLE)}</title>
+<meta name="robots" content="noindex">
+<meta http-equiv="refresh" content="0; url={target}">
+</head>
+<body style="background:#000"></body>
+</html>"""
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(page)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--out", default=os.path.join(BASE_DIR, "site"), help="output folder (default: ./site)")
@@ -117,19 +116,17 @@ def main():
     out_dir = os.path.abspath(args.out)
     site_url = args.site_url.rstrip("/")
 
-    album_list, songs = load_library()
+    album_list, _ = load_library()
     prepare_output(out_dir)
     copy_assets(out_dir)
-    albums = build_library(out_dir, album_list)
+    songs = copy_song_files(out_dir, album_list)
+    for song in songs:
+        write_share_page(out_dir, site_url, song)
+    # No library page: the home page and any unknown address open the featured song
     featured = next((s["id"] for s in songs if s["featured"]), songs[0]["id"])
-    library_data = {"siteTitle": SITE_TITLE, "featured": featured, "albums": albums}
-    featured_album = next(a for a in albums if any(s["id"] == featured for s in a["songs"]))
-    og_image = f"{site_url}/{featured_album['cover']}" if featured_album["cover"] else ""
-    write_index(out_dir, site_url, library_data, og_image)
-    for album in albums:
-        for song in album["songs"]:
-            write_share_page(out_dir, site_url, song)
-    print(f"Built {len(songs)} songs in {len(albums)} albums into {out_dir}")
+    write_redirect(os.path.join(out_dir, "index.html"), f"s/{quote(featured)}/")
+    write_redirect(os.path.join(out_dir, "404.html"), f"{site_url}/s/{quote(featured)}/")
+    print(f"Built share pages for {len(songs)} songs into {out_dir}")
     print(f"Share links look like {site_url}/s/{featured}/")
 
 
