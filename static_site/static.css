@@ -12,13 +12,6 @@
     box-sizing: border-box;
 }
 
-.copyright {
-    text-align: center;
-    font-size: 12px;
-    color: #aaa;
-    margin: 0 0 30px 0;
-}
-
 /* Single-song share page */
 body.single-song {
     padding: 30px 16px 0 16px;

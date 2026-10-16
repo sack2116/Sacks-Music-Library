@@ -109,7 +109,8 @@ def song_row(song, number, favorites, list_type):
                  html.Span(song["duration"], className="song-duration")]
     return html.Div([
         html.Button(label, id=play_id, className="song-button"),
-        html.Button("❤️", id=heart_id, title="Favorite",
+        # The heart itself is drawn by CSS: outline when not a favorite, red when it is
+        html.Button(id=heart_id, title="Favorite",
                     className="favorite-button active" if is_favorite else "favorite-button"),
         html.Button("🔗", className="share-button", title="Share this song",
                     **{"data-share-url": share_url(song["id"]), "data-share-title": song["title"]}),
@@ -204,7 +205,7 @@ def serve_layout():
             }),
             html.Div([
                 html.Button("⏮️ Previous", id="prev-btn", className="control-button"),
-                html.Button("❤️", id="fav-now-playing", title="Favorite", className="favorite-button"),
+                html.Button(id="fav-now-playing", title="Favorite", className="favorite-button"),
                 html.Button("🔗", id="share-now-playing", className="share-button", title="Share this song"),
                 html.Button("⏭️ Next", id="next-btn", className="control-button")
             ], style={"text-align": "center", "margin-top": "20px",
@@ -214,7 +215,8 @@ def serve_layout():
             dcc.Store(id="current-song", data=None),
             dcc.Store(id="open-albums", data=[]),
             dcc.Store(id="favorites-store", data=favorites),
-        ], className="music-player")
+        ], className="music-player"),
+        html.P("All music, lyrics and content are original compositions of © Isaac D.", className="copyright"),
     ])
 app.layout = serve_layout
 # SELECT SONG: on page load (featured song, or ?song=<id> from a share link), song clicks, Previous / Next.

@@ -201,6 +201,25 @@ h1 {
     animation: heartBeat 1s ease-in-out;
 }
 
+/* The heart is drawn here (not an emoji) so it can change color:
+   grey outline = not a favorite, solid red = favorite */
+.favorite-button::before {
+    content: "\2661\FE0E";
+    color: #9aa4b2;
+    font-family: "Segoe UI Symbol", "Arial Unicode MS", Arial, sans-serif;
+    font-size: 22px;
+    line-height: 1;
+}
+
+.favorite-button:hover::before {
+    color: #ffb3ad;
+}
+
+.favorite-button.active::before {
+    content: "\2665\FE0E";
+    color: #FF4136;
+}
+
 /* Heart beat animation */
 @keyframes heartBeat {
     0% { transform: scale(1); }
@@ -470,6 +489,15 @@ h1 {
     display: none;
     margin-bottom: 5px;
     animation: pulse 2s infinite ease-in-out;
+}
+
+/* Copyright line at the bottom of the page */
+.copyright {
+    text-align: center;
+    font-size: 13px;
+    color: #ccc;
+    margin: 0 16px 30px 16px;
+    text-shadow: 0 0 6px rgba(0, 0, 0, 0.8);
 }
 
 /* "Link copied" message */
