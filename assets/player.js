@@ -52,12 +52,12 @@
 
     // Share buttons: phone share sheet on touch devices, otherwise copy the link
     document.addEventListener("click", async (e) => {
-        const button = e.target.closest("[data-share-id]");
+        const button = e.target.closest("[data-share-url]");
         if (!button) return;
-        const songId = button.getAttribute("data-share-id");
-        if (!songId) return;
+        const shareUrl = button.getAttribute("data-share-url");
+        if (!shareUrl) return;
         const title = button.getAttribute("data-share-title") || "this song";
-        const url = `${window.location.origin}/s/${encodeURIComponent(songId)}`;
+        const url = new URL(shareUrl, window.location.origin).href;
         if (navigator.share && window.matchMedia("(pointer: coarse)").matches) {
             try {
                 await navigator.share({ title: title, text: `Listen to "${title}"`, url: url });

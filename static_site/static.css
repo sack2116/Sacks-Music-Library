@@ -1,0 +1,73 @@
+/* Extra styles for the static share site (layered on top of assets/style.css from the Dash app) */
+.title-note {
+    color: #ff66c4;
+    font-size: 36px;
+    margin-right: 10px;
+}
+
+.view-toggle-label {
+    color: white;
+    font-family: inherit;
+    font-size: 14px;
+}
+
+.view-toggle-label.selected {
+    background: linear-gradient(135deg, #4A90E2, #76B9F0);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+}
+
+.video-holder {
+    position: relative;
+    width: 100%;
+    text-align: right;
+}
+
+#background-video {
+    width: 310px;
+    height: 270px;
+    border-radius: 10px;
+    position: absolute;
+    top: -60px;
+    right: 20px;
+    z-index: 5;
+}
+
+#now-playing-artwork[src=""] {
+    visibility: hidden;
+}
+
+.audio-frame {
+    border: 2px solid #40E0D0;
+    border-radius: 10px;
+    padding: 10px;
+    width: 100%;
+    margin-top: 10px;
+    box-sizing: border-box;
+}
+
+.controls {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.song-item .song-button {
+    flex: 1;
+    text-align: left;
+    font-family: inherit;
+}
+
+.copyright {
+    text-align: center;
+    font-size: 12px;
+    color: #aaa;
+    margin: 0 0 30px 0;
+}
+
+@media (max-width: 1100px) {
+    /* The floating video covers the song details on narrower screens */
+    #background-video {
+        display: none;
+    }
+}

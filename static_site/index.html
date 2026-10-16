@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{SITE_TITLE}}</title>
+<meta name="description" content="Original songs by Isaac D.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="{{SITE_TITLE}}">
+<meta property="og:description" content="Original songs by Isaac D.">
+<meta property="og:image" content="{{OG_IMAGE}}">
+<meta property="og:url" content="{{SITE_URL}}/">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/static.css">
+</head>
+<body>
+<h1><span class="title-note">🎵</span>{{SITE_TITLE}}</h1>
+
+<div class="songs-lyrics-container">
+    <div class="song-list">
+        <div class="song-list-header">
+            <div class="view-toggle" role="tablist">
+                <button class="view-toggle-label selected" data-view="albums" role="tab">💿 Albums</button>
+                <button class="view-toggle-label" data-view="favorites" role="tab">❤️ Favorites</button>
+            </div>
+        </div>
+        <div id="albums-view"></div>
+        <div id="favorites-view" hidden></div>
+    </div>
+    <div class="lyrics-container">
+        <h3 class="section-heading">Lyrics</h3>
+        <div id="lyrics" class="lyrics-content"></div>
+    </div>
+</div>
+
+<div class="music-player">
+    <h3 class="section-heading now-playing-button">Now Playing</h3>
+    <div class="video-holder">
+        <video id="background-video" src="assets/Sacks.mp4" autoplay loop muted playsinline></video>
+    </div>
+    <img id="now-playing-artwork" src="" alt="">
+    <h2 id="now-playing-title">Select a Song</h2>
+    <p id="now-playing-details"></p>
+    <button id="tap-to-play" class="control-button tap-to-play">▶ Tap to play</button>
+    <div class="audio-frame">
+        <audio id="audio-player" controls preload="auto"></audio>
+    </div>
+    <div class="controls">
+        <button id="prev-btn" class="control-button">⏮️ Previous</button>
+        <button id="fav-now-playing" class="favorite-button" title="Favorite">❤️</button>
+        <button id="share-now-playing" class="share-button" title="Share this song">🔗</button>
+        <button id="next-btn" class="control-button">⏭️ Next</button>
+    </div>
+    <div id="toast" class="toast"></div>
+</div>
+
+<p class="copyright">All music and content are original compositions © Isaac D.</p>
+
+<script id="library-data" type="application/json">{{LIBRARY_JSON}}</script>
+<script src="assets/player.js"></script>
+</body>
+</html>
