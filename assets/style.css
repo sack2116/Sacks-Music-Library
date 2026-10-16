@@ -298,6 +298,201 @@ h1 {
     background-color: #2eb8b8;
 }
 
+/* Albums / Favorites switch */
+.view-toggle {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.view-toggle-input {
+    display: none;
+}
+
+.view-toggle-label {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    background: rgba(118, 185, 240, 0.15);
+    border: 1px solid #76B9F0;
+    transition: all 0.3s ease;
+}
+
+.view-toggle-label:has(input:checked) {
+    background: linear-gradient(135deg, #4A90E2, #76B9F0);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Expandable albums */
+.album {
+    margin-bottom: 10px;
+    border-radius: 10px;
+    background: rgba(118, 185, 240, 0.08);
+    overflow: hidden;
+}
+
+.album-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 10px;
+    border: none;
+    background: linear-gradient(135deg, rgba(74, 144, 226, 0.35), rgba(64, 224, 208, 0.2));
+    color: white;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.album-header:hover {
+    background: linear-gradient(135deg, rgba(74, 144, 226, 0.55), rgba(64, 224, 208, 0.35));
+}
+
+.album-cover {
+    width: 56px;
+    height: 56px;
+    border-radius: 8px;
+    object-fit: cover;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+    flex-shrink: 0;
+}
+
+.album-cover-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    background: #222;
+}
+
+.album-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.album-name {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.album-meta {
+    font-size: 12px;
+    color: #ccc;
+}
+
+.album-chevron {
+    font-size: 20px;
+    transition: transform 0.3s ease;
+}
+
+.album-header.open .album-chevron {
+    transform: rotate(90deg);
+}
+
+.album-songs {
+    padding: 5px 8px 8px 8px;
+}
+
+/* Song row contents */
+.track-num {
+    width: 24px;
+    opacity: 0.8;
+    flex-shrink: 0;
+}
+
+.song-title {
+    flex: 1;
+    min-width: 0;
+}
+
+.song-album {
+    font-size: 12px;
+    opacity: 0.85;
+    margin: 0 10px;
+}
+
+.song-duration {
+    margin-left: 10px;
+    opacity: 0.9;
+}
+
+.song-button.playing {
+    background: linear-gradient(to right, #ff66c4, #4A90E2);
+    font-weight: 600;
+    box-shadow: 0 0 12px rgba(255, 102, 196, 0.5);
+}
+
+.song-button.playing .track-num {
+    visibility: hidden;
+}
+
+.song-button.playing .track-num::before {
+    content: "▶";
+    visibility: visible;
+    position: absolute;
+}
+
+.empty-message {
+    text-align: center;
+    color: #ccc;
+    padding: 20px;
+}
+
+/* Share button */
+.share-button {
+    background: transparent;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    margin-left: 4px;
+    padding: 5px;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: transform 0.3s ease;
+}
+
+.share-button:hover {
+    transform: scale(1.2);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* "Tap to play" (shown when the browser blocks autoplay) */
+.tap-to-play {
+    display: none;
+    margin-bottom: 5px;
+    animation: pulse 2s infinite ease-in-out;
+}
+
+/* "Link copied" message */
+.toast {
+    position: fixed;
+    left: 50%;
+    bottom: 30px;
+    transform: translateX(-50%);
+    background: rgba(20, 20, 20, 0.95);
+    border: 1px solid #40E0D0;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 100;
+}
+
+.toast.visible {
+    opacity: 1;
+}
+
 /* Now Playing Section */
 .music-player {
     background: rgba(0, 0, 0, 0.9);

@@ -1,55 +1,43 @@
 import os
-import base64
 import json
-import pandas as pd
-import dash
-from dash import html, dcc, Output, Input, State
-from mutagen.mp3 import MP3
-from mutagen.id3 import ID3, TIT2, TALB, TPE1, TCON, TYER, APIC
-from flask import send_file
 import glob
+import html as html_lib
+import unicodedata
+import re
+from urllib.parse import parse_qs, quote
+import dash
+from dash import html, dcc, Output, Input, State, ALL, ctx
 from dash.exceptions import PreventUpdate
+from mutagen.mp3 import MP3
+from mutagen.id3 import ID3, APIC
+from flask import send_file, abort, request, Response
+from werkzeug.middleware.proxy_fix import ProxyFix
 # Define directories
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MUSIC_DIR = os.path.join(BASE_DIR, "MusicAlbums")
-# Load song metadata
-def load_songs(directory):
-    songs = []
-    print(f"Scanning directory: {directory}")
-    for root, _, files in os.walk(directory):  
-        for file in files:
-            if file.endswith(".mp3"):
-                file_path = os.path.join(root, file)
-                print(f"Found MP3: {file_path}")
-                title, album, artist, genre, year, lyrics = extract_metadata(file_path)
-                duration = format_duration(file_path)
-                artwork = get_artwork_thumbnail(file_path)
-                relative_path = os.path.relpath(file_path, BASE_DIR)
-                songs.append({
-                    "title": title, 
-                    "album": album, 
-                    "artist": artist,
-                    "genre": genre,
-                    "year": year,
-                    "duration": duration, 
-                    "artwork": artwork, 
-                    "file_path": relative_path,
-                    "lyrics": lyrics
-                })
-    df = pd.DataFrame(songs)
-    print(f"Total songs loaded: {len(df)}")
-    return df
-# Extract metadata
-def extract_metadata(file_path):
-    audio = MP3(file_path, ID3=ID3)
-    title = audio.tags.get("TIT2", TIT2(encoding=3, text=["Unknown Title"])).text[0]
-    album = audio.tags.get("TALB", TALB(encoding=3, text=["Unknown Album"])).text[0]
-    artist = audio.tags.get("TPE1", TPE1(encoding=3, text=["Unknown Artist"])).text[0]
-    genre = audio.tags.get("TCON", TCON(encoding=3, text=["Unknown Genre"])).text[0]
-    year_tag = audio.tags.get("TYER") or audio.tags.get("TDRC")
-    year = year_tag.text[0] if year_tag else "Unknown Year"
-    lyrics = load_lyrics(file_path)
-    return title, album, artist, genre, year, lyrics
+# Album display settings. Keys are folder names inside MusicAlbums; albums are listed in this order
+# (folders not listed here are added after these, using the folder name).
+ALBUMS = [
+    {"folder": "Exhaltado Dios", "name": "Exhaltado es Dios", "cover": "Exhaltado.png"},
+    {"folder": "LoveFamily", "name": "Love Family", "cover": "LoveFamily.jpg"},
+    {"folder": "Principios", "name": "Principios", "cover": "Principios.png"},
+]
+# Song that plays when the player opens (path relative to MusicAlbums). It is listed first in its album.
+FEATURED_SONG = "Exhaltado Dios/Exhaltado Dios/Exaltado Es Dios.mp3"
+# Titles to show instead of the MP3's title tag (path relative to MusicAlbums)
+TITLE_OVERRIDES = {
+    FEATURED_SONG: "Exaltado es Dios",  # the file's tag still says "Exaltado es el Rey"
+}
+SITE_TITLE = "Isaac's Personal Music Library and Player"
+# Turn a name into a URL-friendly id, e.g. "Santo Santo Santo!" -> "santo-santo-santo"
+def slugify(text):
+    text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode()
+    return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-") or "song"
+# Read a text tag from an MP3, falling back to a default
+def get_tag(tags, key, default):
+    if tags is not None and key in tags and tags[key].text:
+        return str(tags[key].text[0])
+    return default
 # Load lyrics from a .txt file if available
 def load_lyrics(file_path):
     lyrics_file = os.path.splitext(file_path)[0] + ".txt"
@@ -63,23 +51,74 @@ def load_lyrics(file_path):
             return f.read()
     return "No Lyrics Available"
 # Format duration as minutes:seconds
-def format_duration(file_path):
-    audio = MP3(file_path)
-    length = audio.info.length
+def format_duration(length):
     minutes = int(length // 60)
     seconds = int(length % 60)
     return f"{minutes}:{seconds:02}"
-# Get artwork thumbnail from MP3 tags
-def get_artwork_thumbnail(file_path):
-    audio = MP3(file_path, ID3=ID3)
-    for tag in audio.tags.values():
-        if isinstance(tag, APIC):  
-            return f"data:image/jpeg;base64,{base64.b64encode(tag.data).decode()}"
-    return os.path.join("assets", "default_artwork.jpg")
-# Load songs into dataframe
-df = load_songs(MUSIC_DIR)
-# Favorites setup (JSON file)
-FAVORITES_FILE = "favorites.json"
+# Track number tag ("3" or "3/10") as an int for sorting
+def track_number(tags):
+    match = re.match(r"\d+", get_tag(tags, "TRCK", ""))
+    return int(match.group()) if match else 9999
+# Scan MusicAlbums: every top-level folder is an album, every MP3 inside it (at any depth) is a song
+def load_library(directory):
+    print(f"Scanning directory: {directory}")
+    album_settings = {a["folder"]: a for a in ALBUMS}
+    albums = {}
+    for root, _, files in os.walk(directory):
+        for file in sorted(files):
+            if not file.lower().endswith(".mp3"):
+                continue
+            file_path = os.path.join(root, file)
+            music_path = os.path.relpath(file_path, directory).replace(os.sep, "/")
+            if "/" not in music_path:
+                continue  # MP3s must be inside an album folder
+            folder = music_path.split("/")[0]
+            audio = MP3(file_path, ID3=ID3)
+            tags = audio.tags
+            settings = album_settings.get(folder, {})
+            album = albums.setdefault(folder, {
+                "key": slugify(folder),
+                "folder": folder,
+                "name": settings.get("name", folder),
+                "cover": settings.get("cover"),
+                "songs": [],
+            })
+            album["songs"].append({
+                "title": TITLE_OVERRIDES.get(music_path, get_tag(tags, "TIT2", os.path.splitext(file)[0])),
+                "album": album["name"],
+                "album_key": album["key"],
+                "artist": get_tag(tags, "TPE1", "Unknown Artist"),
+                "year": get_tag(tags, "TYER", get_tag(tags, "TDRC", "Unknown Year")),
+                "duration": format_duration(audio.info.length),
+                "featured": music_path == FEATURED_SONG,
+                "track": track_number(tags),
+                "file_path": file_path,
+                "lyrics": load_lyrics(file_path),
+            })
+    # Album order: as listed in ALBUMS, then any other folders alphabetically
+    order = [a["folder"] for a in ALBUMS]
+    album_list = sorted(albums.values(),
+                        key=lambda a: (order.index(a["folder"]) if a["folder"] in order else len(order), a["folder"].lower()))
+    songs = []
+    used_ids = set()
+    for album in album_list:
+        album["songs"].sort(key=lambda s: (not s["featured"], s["track"], s["title"].lower()))
+        for song in album["songs"]:
+            # Song ids are used in share links (/s/<id>), so keep them short and readable
+            song_id = slugify(song["title"])
+            if song_id in used_ids:
+                song_id = f"{album['key']}-{song_id}"
+            used_ids.add(song_id)
+            song["id"] = song_id
+            songs.append(song)
+    print(f"Total songs loaded: {len(songs)} in {len(album_list)} albums")
+    return album_list, songs
+ALBUM_LIST, SONGS = load_library(MUSIC_DIR)
+SONG_BY_ID = {s["id"]: s for s in SONGS}
+ALBUM_BY_KEY = {a["key"]: a for a in ALBUM_LIST}
+DEFAULT_SONG_ID = next((s["id"] for s in SONGS if s["featured"]), SONGS[0]["id"] if SONGS else None)
+# Favorites setup (JSON file, stores song titles)
+FAVORITES_FILE = os.path.join(BASE_DIR, "favorites.json")
 def load_favorites():
     if os.path.exists(FAVORITES_FILE):
         with open(FAVORITES_FILE, "r") as f:
@@ -91,272 +130,349 @@ def load_favorites():
 def save_favorites(favorites):
     with open(FAVORITES_FILE, "w") as f:
         json.dump(favorites, f)
-favorites = load_favorites()
 # Initialize Dash app
-app = dash.Dash(__name__, 
+app = dash.Dash(__name__,
+                title=SITE_TITLE,
                 external_stylesheets=[
-                    'https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap',
-                    '/assets/style.css'
+                    'https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap'
                 ],
                 meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1.0"}])
 server = app.server
-# Serve music files
-@app.server.route("/music/<path:song_path>")
-def serve_music(song_path):
-    full_path = os.path.abspath(os.path.join(BASE_DIR, song_path))
-    if os.path.exists(full_path):
-        return send_file(full_path, mimetype="audio/mpeg")
-    return "File Not Found", 404
-# App layout; note we use a dcc.Store ("current-song-index") to remember the selected song.
-app.layout = html.Div([
-    html.H1([
-        html.Span("🎵", style={"color": "#ff66c4", "font-size": "36px", "margin-right": "10px"}),
-        "Isaac's Personal Music Library and Player"
-    ], style={"text-align": "center"}),
-    html.Div([
+# Render runs the app behind a proxy; this makes share links use the public https address
+server.wsgi_app = ProxyFix(server.wsgi_app, x_proto=1, x_host=1)
+# Serve a song's audio (supports seeking)
+@server.route("/music/<song_id>")
+def serve_music(song_id):
+    song = SONG_BY_ID.get(song_id) or abort(404)
+    return send_file(song["file_path"], mimetype="audio/mpeg", conditional=True)
+# Serve an album's cover image
+@server.route("/album-cover/<album_key>")
+def serve_album_cover(album_key):
+    album = ALBUM_BY_KEY.get(album_key) or abort(404)
+    if not album["cover"]:
+        abort(404)
+    cover_path = os.path.join(MUSIC_DIR, album["folder"], album["cover"])
+    if not os.path.exists(cover_path):
+        abort(404)
+    return send_file(cover_path, max_age=86400)
+# Serve a song's artwork from its MP3 tags (falls back to the album cover)
+@server.route("/artwork/<song_id>")
+def serve_artwork(song_id):
+    song = SONG_BY_ID.get(song_id) or abort(404)
+    tags = MP3(song["file_path"], ID3=ID3).tags
+    for tag in (tags.values() if tags else []):
+        if isinstance(tag, APIC):
+            return Response(tag.data, mimetype=tag.mime or "image/jpeg",
+                            headers={"Cache-Control": "public, max-age=86400"})
+    return serve_album_cover(song["album_key"])
+# Share link for one song. Link previews (WhatsApp, Messages, Facebook...) read the tags on this
+# page; people who open it are sent straight to the player with that song playing.
+@server.route("/s/<song_id>")
+def share_song(song_id):
+    song = SONG_BY_ID.get(song_id) or abort(404)
+    root = request.url_root
+    player_url = f"{root}?song={quote(song_id)}"
+    image_url = f"{root}artwork/{quote(song_id)}"
+    title = html_lib.escape(f"{song['title']} - {song['artist']}")
+    description = html_lib.escape(f"Listen to \"{song['title']}\" from the album {song['album']}")
+    page = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{title}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta property="og:type" content="music.song">
+<meta property="og:site_name" content="{html_lib.escape(SITE_TITLE)}">
+<meta property="og:title" content="{title}">
+<meta property="og:description" content="{description}">
+<meta property="og:image" content="{image_url}">
+<meta property="og:url" content="{root}s/{quote(song_id)}">
+<meta name="twitter:card" content="summary_large_image">
+<meta http-equiv="refresh" content="0; url={player_url}">
+</head>
+<body style="background:#000;color:#fff;font-family:Arial,sans-serif;text-align:center;padding-top:40px">
+<p>Opening <a style="color:#40E0D0" href="{player_url}">{html_lib.escape(song['title'])}</a>...</p>
+<script>window.location.replace({json.dumps(player_url)});</script>
+</body>
+</html>"""
+    return Response(page, mimetype="text/html")
+# One song row: play button, favorite heart and share button
+def song_row(song, number, favorites, list_type):
+    is_favorite = song["title"] in favorites
+    if list_type == "album":
+        play_id = {"type": "song-btn", "song": song["id"]}
+        heart_id = {"type": "fav-btn", "song": song["id"]}
+        label = [html.Span(f"{number}.", className="track-num"),
+                 html.Span(song["title"], className="song-title"),
+                 html.Span(song["duration"], className="song-duration")]
+    else:
+        play_id = {"type": "fav-song-btn", "song": song["id"]}
+        heart_id = {"type": "unfav-btn", "song": song["id"]}
+        label = [html.Span(song["title"], className="song-title"),
+                 html.Span(song["album"], className="song-album"),
+                 html.Span(song["duration"], className="song-duration")]
+    return html.Div([
+        html.Button(label, id=play_id, className="song-button"),
+        html.Button("❤️", id=heart_id, title="Favorite",
+                    className="favorite-button active" if is_favorite else "favorite-button"),
+        html.Button("🔗", className="share-button", title="Share this song",
+                    **{"data-share-id": song["id"], "data-share-title": song["title"]}),
+    ], className="song-item")
+# Expandable album: header with cover and name, and the album's songs (hidden until opened)
+def album_section(album, favorites):
+    cover = html.Img(src=f"/album-cover/{album['key']}", className="album-cover") if album["cover"] else \
+        html.Div("💿", className="album-cover album-cover-placeholder")
+    count = len(album["songs"])
+    return html.Div([
+        html.Button([
+            cover,
+            html.Div([
+                html.Div(album["name"], className="album-name"),
+                html.Div(f"{count} song{'s' if count != 1 else ''}", className="album-meta"),
+            ], className="album-info"),
+            html.Span("▸", className="album-chevron"),
+        ], id={"type": "album-toggle", "album": album["key"]}, className="album-header"),
+        html.Div([song_row(song, i + 1, favorites, "album") for i, song in enumerate(album["songs"])],
+                 id={"type": "album-songs", "album": album["key"]},
+                 className="album-songs", style={"display": "none"}),
+    ], className="album")
+# The page is built per visit so it shows the current favorites
+def serve_layout():
+    favorites = load_favorites()
+    return html.Div([
+        dcc.Location(id="url", refresh=False),
+        html.H1([
+            html.Span("🎵", style={"color": "#ff66c4", "font-size": "36px", "margin-right": "10px"}),
+            SITE_TITLE
+        ], style={"text-align": "center"}),
         html.Div([
             html.Div([
-                html.Button("Available Songs", 
-                        id="toggle-dropdown", 
-                        className="dropdown-label-button", 
-                        n_clicks=0),
                 html.Div([
-                    html.Button("Filter Dropdown 🔽", 
-                                id="filter-button", 
-                                className="filter-dropdown-button"),
-                    dcc.Dropdown(
-                        id="filter-dropdown",
-                        options=[ 
-                            {"label": "All Songs", "value": "all"},
-                            {"label": "Favorites ❤️", "value": "favorites"},
-                            {"label": "By Album", "value": "by_album"}
-                        ],
-                        value="all",
-                        clearable=False,
-                        style={"width": "100%", "margin-top": "5px", "display": "none"}
+                    dcc.RadioItems(
+                        id="view-mode",
+                        options=[{"label": "💿 Albums", "value": "albums"},
+                                 {"label": "❤️ Favorites", "value": "favorites"}],
+                        value="albums",
+                        className="view-toggle",
+                        inputClassName="view-toggle-input",
+                        labelClassName="view-toggle-label",
                     ),
-                ], id="dropdown-container", className="dropdown-container")  
-            ], className="song-list-header"),
-            html.Div(id="songs-list", className="songs-list-container"),
-        ], className="song-list"),
-        # Lyrics Section
+                ], className="song-list-header"),
+                html.Div([album_section(album, favorites) for album in ALBUM_LIST], id="albums-view"),
+                html.Div(id="favorites-view", style={"display": "none"}),
+            ], className="song-list"),
+            # Lyrics Section
+            html.Div([
+                html.H3("Lyrics", className="section-heading"),
+                html.Div(id="lyrics", className="lyrics-content")
+            ], className="lyrics-container"),
+        ], className="songs-lyrics-container"),
+        # Now Playing Section
         html.Div([
-            html.H3("Lyrics", className="section-heading"),
-            html.Div(id="lyrics", className="lyrics-content")
-        ], className="lyrics-container"),
-    ], className="songs-lyrics-container"),
-    # Now Playing Section
-    html.Div([
-        html.H3("Now Playing", className="section-heading now-playing-button"),
-        html.Div(style={"position": "relative", "width": "100%", "text-align": "right"}, children=[
-            html.Video(
-                id="background-video",
-                src="/assets/Sacks.mp4",
-                autoPlay=True,
-                loop=True,
-                muted=True,
-                controls=False,
-                style={
-                    "width": "310px",
-                    "height": "270px",
-                    "border-radius": "10px",
-                    "position": "absolute",
-                    "top": "-60px",
-                    "right": "20px",
-                    "z-index": "5"
-                }
-            )
-        ]),
-        html.Img(id="now-playing-artwork", src="/assets/default_artwork.jpg",
-                 style={"width": "120px", "height": "120px"}),
-        html.H2(id="now-playing-title", children="Select a Song"),
-        html.P(id="now-playing-details", children=""),
-        html.Div([
-            html.Audio(id="audio-player", controls=True, autoPlay=True,
-                       style={"width": "100%", "height": "80px"})
-        ], style={
-            "border": "2px solid #40E0D0",
-            "border-radius": "10px",
-            "padding": "10px",
-            "width": "100%",
-            "margin-top": "10px"
-        }),
-        html.Div([
-            html.Button("⏮️ Previous", id="prev-btn", className="control-button"),
-            html.Button("❤️", id="fav-now-playing", n_clicks=0, className="favorite-button"),
-            html.Button("⏭️ Next", id="next-btn", className="control-button")
-        ], style={"text-align": "center", "margin-top": "20px",
-                  "display": "flex", "justify-content": "center", "align-items": "center"}),
-        # Stores for state management:
-        dcc.Store(id="current-song-index", data=0),
-        dcc.Store(id="favorites-store", data=favorites),
-        # A dummy store to trigger initial load:
-        dcc.Store(id="initial-load-trigger", data=0)
-    ], className="music-player")
-])
-# SONG LIST CALLBACK
-# Generates the list of songs. The song selection button here does NOT use persistence.
+            html.H3("Now Playing", className="section-heading now-playing-button"),
+            html.Div(style={"position": "relative", "width": "100%", "text-align": "right"}, children=[
+                html.Video(
+                    id="background-video",
+                    src="/assets/Sacks.mp4",
+                    autoPlay=True,
+                    loop=True,
+                    muted=True,
+                    controls=False,
+                    style={
+                        "width": "310px",
+                        "height": "270px",
+                        "border-radius": "10px",
+                        "position": "absolute",
+                        "top": "-60px",
+                        "right": "20px",
+                        "z-index": "5"
+                    }
+                )
+            ]),
+            html.Img(id="now-playing-artwork", src="",
+                     style={"width": "120px", "height": "120px"}),
+            html.H2(id="now-playing-title", children="Select a Song"),
+            html.P(id="now-playing-details", children=""),
+            # Shown when the browser blocks autoplay until the visitor interacts with the page
+            html.Button("▶ Tap to play", id="tap-to-play", className="control-button tap-to-play"),
+            html.Div([
+                # player.js starts playback whenever a new song loads
+                html.Audio(id="audio-player", controls=True,
+                           style={"width": "100%", "height": "80px"})
+            ], style={
+                "border": "2px solid #40E0D0",
+                "border-radius": "10px",
+                "padding": "10px",
+                "width": "100%",
+                "margin-top": "10px"
+            }),
+            html.Div([
+                html.Button("⏮️ Previous", id="prev-btn", className="control-button"),
+                html.Button("❤️", id="fav-now-playing", title="Favorite", className="favorite-button"),
+                html.Button("🔗", id="share-now-playing", className="share-button", title="Share this song"),
+                html.Button("⏭️ Next", id="next-btn", className="control-button")
+            ], style={"text-align": "center", "margin-top": "20px",
+                      "display": "flex", "justify-content": "center", "align-items": "center"}),
+            html.Div(id="toast", className="toast"),
+            # Stores for state management:
+            dcc.Store(id="current-song", data=None),
+            dcc.Store(id="open-albums", data=[]),
+            dcc.Store(id="favorites-store", data=favorites),
+        ], className="music-player")
+    ])
+app.layout = serve_layout
+# SELECT SONG: on page load (featured song, or ?song=<id> from a share link), song clicks, Previous / Next.
+# Previous and Next move within the album of the song that is playing.
 @app.callback(
-    Output("songs-list", "children"),
-    [Input("filter-dropdown", "value"),
-     Input("favorites-store", "data"),
-     Input("initial-load-trigger", "data")]
-)
-def generate_song_list(filter_value, favorites, _):
-    if filter_value == "favorites":
-        filtered_df = df[df['title'].isin(favorites)]
-    elif filter_value == "by_album":
-        filtered_df = df.sort_values("album")
-    else:
-        filtered_df = df
-    songs_list = []
-    for i, row in filtered_df.iterrows():
-        is_favorite = row['title'] in favorites
-        heart_class = "favorite-button active" if is_favorite else "favorite-button"
-        song_item = html.Div([
-            # Left: song selection button
-            html.Button(
-                f"{row['title']} - {row['album']} ({row['duration']})",
-                id={"type": "song-btn", "index": i},
-                n_clicks=0,
-                className="song-button",
-                style={"flex": "1", "text-align": "left", "background": "none", "border": "none", "cursor": "pointer"}
-            ),
-            # Right: favorite heart button
-            html.Button(
-                "❤️",
-                id={"type": "fav-btn", "index": i},
-                n_clicks=0,
-                className=heart_class,
-                style={"margin-left": "10px", "cursor": "pointer", "background": "none", "border": "none"}
-            )
-        ], className="song-item", style={"display": "flex", "align-items": "center", "margin-bottom": "5px"})
-        songs_list.append(song_item)
-    return songs_list
-# TOGGLE DROPDOWN CALLBACK
-@app.callback(
-    Output("filter-dropdown", "style"),
-    Input("filter-button", "n_clicks"),
-    State("filter-dropdown", "style"),
-    prevent_initial_call=True
-)
-def toggle_dropdown(n_clicks, dropdown_style):
-    if n_clicks:
-        dropdown_style = dropdown_style.copy()
-        dropdown_style["display"] = "block" if dropdown_style["display"] == "none" else "none"
-    return dropdown_style
-# CALLBACK #1: Update the current song index based on song button or navigation clicks.
-@app.callback(
-    Output("current-song-index", "data"),
-    [Input({"type": "song-btn", "index": dash.dependencies.ALL}, "n_clicks"),
+    Output("current-song", "data"),
+    [Input("url", "search"),
+     Input({"type": "song-btn", "song": ALL}, "n_clicks"),
+     Input({"type": "fav-song-btn", "song": ALL}, "n_clicks"),
      Input("prev-btn", "n_clicks"),
      Input("next-btn", "n_clicks")],
-    State("current-song-index", "data"),
-    prevent_initial_call=True
+    State("current-song", "data")
 )
-def update_current_song_index(song_clicks, prev_clicks, next_clicks, current_index):
-    ctx = dash.callback_context
-    if not ctx.triggered:
+def select_song(search, _song_clicks, _fav_song_clicks, _prev, _next, current_id):
+    trigger = ctx.triggered_id
+    # Page load (Dash may report any input as the trigger here): play the shared song or the featured one
+    if current_id is None:
+        requested = parse_qs((search or "").lstrip("?")).get("song", [None])[0]
+        song_id = requested if requested in SONG_BY_ID else DEFAULT_SONG_ID
+        if song_id is None:
+            raise PreventUpdate
+        return song_id
+    # Buttons that were just (re)rendered also fire with no clicks; ignore those
+    if trigger is None or trigger == "url" or not ctx.triggered[0]["value"]:
         raise PreventUpdate
-    triggered_prop = ctx.triggered[0]["prop_id"]
-    # Only update if a button with non-zero n_clicks triggered the callback
-    if "song-btn" in triggered_prop:
-        # Determine which song-btn was clicked by checking n_clicks values.
-        # NOTE: Even though re-rendering resets them to 0, we only act if one button actually got a new click.
-        for i, clicks in enumerate(song_clicks):
-            if clicks and clicks > 0:
-                return i
+    if isinstance(trigger, dict):
+        return trigger["song"]
+    if current_id not in SONG_BY_ID:
         raise PreventUpdate
-    elif triggered_prop.startswith("prev-btn") and prev_clicks:
-        return (current_index - 1) % len(df)
-    elif triggered_prop.startswith("next-btn") and next_clicks:
-        return (current_index + 1) % len(df)
-    else:
-        raise PreventUpdate
-# CALLBACK #2: Update Now-Playing Display based on the current song index and favorites store.
+    album_songs = ALBUM_BY_KEY[SONG_BY_ID[current_id]["album_key"]]["songs"]
+    position = next(i for i, s in enumerate(album_songs) if s["id"] == current_id)
+    step = -1 if trigger == "prev-btn" else 1
+    return album_songs[(position + step) % len(album_songs)]["id"]
+# Update Now-Playing display for the selected song
 @app.callback(
     [Output("now-playing-title", "children"),
      Output("now-playing-artwork", "src"),
      Output("now-playing-details", "children"),
      Output("audio-player", "src"),
      Output("lyrics", "children"),
-     Output("fav-now-playing", "className")],
-    [Input("current-song-index", "data"),
-     Input("favorites-store", "data")]
+     Output("share-now-playing", "data-share-id"),
+     Output("share-now-playing", "data-share-title")],
+    Input("current-song", "data")
 )
-def update_now_playing_display(current_index, favorites):
-    if current_index is None or current_index >= len(df):
+def update_now_playing_display(song_id):
+    song = SONG_BY_ID.get(song_id)
+    if song is None:
         raise PreventUpdate
-    song = df.iloc[current_index]
-    song_url = f"/music/{song['file_path']}"
-    is_favorite = song["title"] in favorites
-    heart_class = "favorite-button active" if is_favorite else "favorite-button"
     return (song["title"],
-            song["artwork"],
+            f"/artwork/{song['id']}",
             f"Album: {song['album']} | Artist: {song['artist']} | Year: {song['year']} | Length: {song['duration']}",
-            song_url,
+            f"/music/{song['id']}",
             song["lyrics"],
-            heart_class)
-# Update favorite button class in the song list (does not affect currently playing song)
+            song["id"],
+            song["title"])
+# Highlight the playing song in the album lists
 @app.callback(
-    Output({"type": "fav-btn", "index": dash.dependencies.MATCH}, "className"),
-    Input({"type": "fav-btn", "index": dash.dependencies.MATCH}, "n_clicks"),
-    [State({"type": "fav-btn", "index": dash.dependencies.MATCH}, "className"),
-     State("favorites-store", "data"),
-     State({"type": "fav-btn", "index": dash.dependencies.MATCH}, "id")],
-    prevent_initial_call=True
+    Output({"type": "song-btn", "song": ALL}, "className"),
+    Input("current-song", "data")
 )
-def update_favorite_button_class(n_clicks, current_class, favorites, button_id):
-    if not n_clicks:
-        return current_class
-    return "favorite-button" if "active" in current_class else "favorite-button active"
-# Update the favorites store when a favorite button is clicked (list view or now-playing)
+def highlight_playing_song(song_id):
+    return ["song-button playing" if o["id"]["song"] == song_id else "song-button"
+            for o in ctx.outputs_list]
+# Open / close albums. The album of the playing song is opened automatically.
+@app.callback(
+    Output("open-albums", "data"),
+    [Input({"type": "album-toggle", "album": ALL}, "n_clicks"),
+     Input("current-song", "data")],
+    State("open-albums", "data")
+)
+def update_open_albums(_toggle_clicks, song_id, open_albums):
+    open_albums = list(open_albums or [])
+    trigger = ctx.triggered_id
+    # On page load Dash may report an album header as the trigger with no clicks; treat that like a song change
+    if isinstance(trigger, dict) and ctx.triggered[0]["value"]:
+        album_key = trigger["album"]
+        if album_key in open_albums:
+            open_albums.remove(album_key)
+        else:
+            open_albums.append(album_key)
+        return open_albums
+    song = SONG_BY_ID.get(song_id)
+    if song is None or song["album_key"] in open_albums:
+        raise PreventUpdate
+    return open_albums + [song["album_key"]]
+@app.callback(
+    [Output({"type": "album-songs", "album": ALL}, "style"),
+     Output({"type": "album-toggle", "album": ALL}, "className")],
+    Input("open-albums", "data")
+)
+def show_open_albums(open_albums):
+    keys = [o["id"]["album"] for o in ctx.outputs_list[0]]
+    styles = [{"display": "block" if key in open_albums else "none"} for key in keys]
+    classes = ["album-header open" if key in open_albums else "album-header" for key in keys]
+    return styles, classes
+# Switch between the Albums and Favorites views
+@app.callback(
+    [Output("albums-view", "style"),
+     Output("favorites-view", "style")],
+    Input("view-mode", "value")
+)
+def switch_view(view_mode):
+    show, hide = {"display": "block"}, {"display": "none"}
+    return (hide, show) if view_mode == "favorites" else (show, hide)
+# List of favorite songs
+@app.callback(
+    Output("favorites-view", "children"),
+    Input("favorites-store", "data")
+)
+def show_favorites(favorites):
+    favorite_songs = [s for s in SONGS if s["title"] in favorites]
+    if not favorite_songs:
+        return html.P("No favorites yet. Tap ❤️ on a song to add it here.", className="empty-message")
+    return [song_row(song, i + 1, favorites, "favorites") for i, song in enumerate(favorite_songs)]
+# Update the favorites store when a heart is clicked (album lists, favorites list or now-playing)
 @app.callback(
     Output("favorites-store", "data"),
-    [Input({"type": "fav-btn", "index": dash.dependencies.ALL}, "n_clicks"),
+    [Input({"type": "fav-btn", "song": ALL}, "n_clicks"),
+     Input({"type": "unfav-btn", "song": ALL}, "n_clicks"),
      Input("fav-now-playing", "n_clicks")],
-    [State({"type": "fav-btn", "index": dash.dependencies.ALL}, "id"),
-     State("favorites-store", "data"),
-     State("current-song-index", "data")],
+    [State("favorites-store", "data"),
+     State("current-song", "data")],
     prevent_initial_call=True
 )
-def update_favorites_store(n_clicks_list, now_playing_clicks, button_ids, favorites, current_index):
-    ctx = dash.callback_context
-    if not ctx.triggered:
-        return favorites
-    triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
-    new_favorites = favorites.copy()
-    # Now-playing heart button
-    if triggered_id == "fav-now-playing" and now_playing_clicks:
-        song_title = df.iloc[current_index]["title"]
-        if song_title in new_favorites:
-            new_favorites.remove(song_title)
-        else:
-            new_favorites.append(song_title)
-    # List view favorite buttons
-    elif "fav-btn" in triggered_id:
-        button_idx = json.loads(triggered_id)["index"]
-        for i, button_id in enumerate(button_ids):
-            if button_id["index"] == button_idx and n_clicks_list[i] > 0:
-                song_title = df.iloc[button_idx]["title"]
-                if song_title in new_favorites:
-                    new_favorites.remove(song_title)
-                else:
-                    new_favorites.append(song_title)
-                break
+def update_favorites_store(_fav_clicks, _unfav_clicks, _now_playing_clicks, favorites, current_id):
+    trigger = ctx.triggered_id
+    if trigger is None or not ctx.triggered[0]["value"]:
+        raise PreventUpdate
+    song_id = trigger["song"] if isinstance(trigger, dict) else current_id
+    song = SONG_BY_ID.get(song_id)
+    if song is None:
+        raise PreventUpdate
+    new_favorites = list(favorites)
+    if song["title"] in new_favorites:
+        new_favorites.remove(song["title"])
+    else:
+        new_favorites.append(song["title"])
     save_favorites(new_favorites)
     return new_favorites
-# Update now-playing favorite button appearance based on favorites store.
+# Update heart buttons from the favorites store
 @app.callback(
-    Output("fav-now-playing", "className", allow_duplicate=True),
-    Input("favorites-store", "data"),
-    State("current-song-index", "data"),
-    prevent_initial_call=True
+    Output({"type": "fav-btn", "song": ALL}, "className"),
+    Input("favorites-store", "data")
 )
-def update_now_playing_favorite_status(favorites, current_index):
-    if current_index is None or current_index >= len(df):
-        return "favorite-button"
-    song_title = df.iloc[current_index]["title"]
-    return "favorite-button active" if song_title in favorites else "favorite-button"
+def update_album_hearts(favorites):
+    return ["favorite-button active" if SONG_BY_ID[o["id"]["song"]]["title"] in favorites else "favorite-button"
+            for o in ctx.outputs_list]
+@app.callback(
+    Output("fav-now-playing", "className"),
+    [Input("favorites-store", "data"),
+     Input("current-song", "data")]
+)
+def update_now_playing_favorite_status(favorites, song_id):
+    song = SONG_BY_ID.get(song_id)
+    return "favorite-button active" if song and song["title"] in favorites else "favorite-button"
 if __name__ == '__main__':
     app.run_server(debug=True)
